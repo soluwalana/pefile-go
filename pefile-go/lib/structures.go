@@ -387,6 +387,7 @@ type ExportDirectory struct {
 	Data			ExportDirectoryD
 	FileOffset		uint32
 	Flags 			map[string]bool
+	Exports			[]*ExportData
 	Size 			uint32
 }
 
@@ -414,6 +415,22 @@ type ExportDirectoryD struct {
 	AddressOfFunctions 		uint32
 	AddressOfNames 			uint32
 	AddressOfNameOrdinals 	uint32
+}
+
+type ExportData struct {
+	Ordinal 				uint16
+	OrdinalOffset			uint32
+	Address 				uint32
+	AddressOffset			uint32
+	Name					[]byte //
+	NameOffset				uint32 //
+	Forwarder				[]byte
+	ForwarderOffset			uint32
+}
+
+
+func (self ExportData) String() string {
+	return sectionString(0, "Export Data", self)
 }
 
 /* Resource Directory */

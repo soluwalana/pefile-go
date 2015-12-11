@@ -40,7 +40,7 @@ def ProcessFile(filename):
             for imp in entry.imports:
                 funcname = None
                 if not imp.name:
-                    funcname = ordlookup.ordLookup(entry.dll.lower(), imp.ordinal, make_name=True)
+                    funcname = ordlookup.ordLookup(entry.dll, imp.ordinal, make_name=True)
                     if not funcname:
                         funcname = str(imp.ordinal)
                 else:
@@ -51,9 +51,21 @@ def ProcessFile(filename):
                 print funcname
 
 
+    
+
+
+    print '\nDIRECTORY_ENTRY_EXPORT\n'
+    print pe.DIRECTORY_ENTRY_EXPORT.struct
+    
+    
+    if hasattr(pe,'DIRECTORY_ENTRY_EXPORT'):
+        for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+            print exp.name
+
     return 
 
     print '\nDIRECTORY_ENTRY_RESOURCE\n'
+    
     if hasattr(pe, 'DIRECTORY_ENTRY_RESOURCE'):
         for resource_type in pe.DIRECTORY_ENTRY_RESOURCE.entries:
             if resource_type.id != None:
@@ -66,13 +78,6 @@ def ProcessFile(filename):
                                 print str(resources.id)                                
                                 data = pe.get_data(resources.data.struct.OffsetToData, resources.data.struct.Size)
                                 print " ".join("{:02x}".format(ord(c)) for c in data[:5])
-
-
-
-    print '\nDIRECTORY_ENTRY_EXPORT\n'
-    if hasattr(pe,'DIRECTORY_ENTRY_EXPORT'):
-        for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
-            print exp.name
 
 
 if __name__ == '__main__':

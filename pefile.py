@@ -3429,6 +3429,7 @@ class PE:
         def length_until_eof(rva):
             return len(self.__data__) - self.get_offset_from_rva(rva)
 
+        print export_dir
         try:
             address_of_names = self.get_data(
                 export_dir.AddressOfNames, min( length_until_eof(export_dir.AddressOfNames), export_dir.NumberOfNames*4))
@@ -3454,6 +3455,7 @@ class PE:
         else:
             safety_boundary = section.VirtualAddress + len(section.get_data()) - export_dir.AddressOfNames
 
+        print "Safety boundary %x, num names %d" % (safety_boundary, min( export_dir.NumberOfNames, safety_boundary/4))
         for i in xrange( min( export_dir.NumberOfNames, safety_boundary/4) ):
             symbol_name_address = self.get_dword_from_data(address_of_names, i)
 
@@ -3465,6 +3467,8 @@ class PE:
             symbol_name = self.get_string_at_rva( symbol_name_address )
             if not is_valid_function_name(symbol_name):
                 break
+
+            print symbol_name
             try:
                 symbol_name_offset = self.get_offset_from_rva( symbol_name_address )
             except PEFormatError:
@@ -3514,6 +3518,7 @@ class PE:
                     forwarder = forwarder_str,
                     forwarder_offset = forwarder_offset ))
 
+
         ordinals = [exp.ordinal for exp in exports]
 
         max_failed_entries_before_giving_up = 10
@@ -3524,11 +3529,9 @@ class PE:
                 'RVA AddressOfFunctions in the export directory points to an invalid address: %x' %
                 export_dir.AddressOfFunctions)
             return
-        else:
-            safety_boundary = section.VirtualAddress + len(section.get_data()) - export_dir.AddressOfFunctions
-
+        
         safety_boundary = section.VirtualAddress + len(section.get_data()) - export_dir.AddressOfFunctions
-
+        print "Safety2 boundary %x, num names %d" % (safety_boundary, min( export_dir.NumberOfNames, safety_boundary/4))
         for idx in xrange( min(export_dir.NumberOfFunctions, safety_boundary/4) ):
 
             if not idx+export_dir.Base in ordinals:

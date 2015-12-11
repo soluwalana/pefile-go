@@ -51,5 +51,10 @@ func main() {
 		}
 	}
 
-	
+	log.Println("\nDIRECTORY_ENTRY_EXPORT\n")
+	log.Println(pefile.ExportDirectory)
+	for _, entry := range pefile.ExportDirectory.Exports {
+		log.Println(string(entry.Name))
+	}
+
 }
