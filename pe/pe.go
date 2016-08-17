@@ -1,35 +1,34 @@
 package pe
 
-/* 
+/*
   TODO: figure out how to detect endianess instead of forcing LittleEndian
 */
 import (
-	"../lib"
-	"log"
-	mmap "github.com/edsrzf/mmap-go"
-	"os"
 	"bytes"
-	"sort"
 	"encoding/binary"
 	"errors"
+	"github.com/dgrif/pefile-go/lib"
+	"github.com/edsrzf/mmap-go"
+	"log"
+	"os"
+	"sort"
 )
-
 
 /* The representation of the PEFile with some helpful abstractions */
 type PEFile struct {
-	Filename			string
-	DosHeader			*lib.DosHeader
-	NTHeader			*lib.NTHeader
-	FileHeader			*lib.FileHeader
-	OptionalHeader		*lib.OptionalHeader
-	OptionalHeader64	*lib.OptionalHeader64
-	Sections 			[]*lib.SectionHeader
-	ImportDescriptors	[]*lib.ImportDescriptor
-	ExportDirectory     *lib.ExportDirectory
+	Filename          string
+	DosHeader         *lib.DosHeader
+	NTHeader          *lib.NTHeader
+	FileHeader        *lib.FileHeader
+	OptionalHeader    *lib.OptionalHeader
+	OptionalHeader64  *lib.OptionalHeader64
+	Sections          []*lib.SectionHeader
+	ImportDescriptors []*lib.ImportDescriptor
+	ExportDirectory   *lib.ExportDirectory
 	// Private Fields
-	data				mmap.MMap
-	dataLen				uint32
-	headerEnd			uint32
+	data      mmap.MMap
+	dataLen   uint32
+	headerEnd uint32
 }
 
 func NewPEFile(filename string) (pe *PEFile, err error) {
@@ -56,7 +55,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	if pe.DosHeader.Data.E_magic == IMAGE_DOSZM_SIGNATURE {
 		return nil, errors.New("Probably a ZM Executable (not a PE file).")
 	}
-	
+
 	if pe.DosHeader.Data.E_magic != IMAGE_DOS_SIGNATURE {
 		return nil, errors.New("DOS Header magic not found.")
 	}
@@ -64,7 +63,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	if pe.DosHeader.Data.E_lfanew > pe.dataLen {
 		return nil, errors.New("Invalid e_lfanew value, probably not a PE file")
 	}
-	
+
 	offset = pe.DosHeader.Data.E_lfanew
 
 	pe.NTHeader = lib.NewNTHeader(offset)
@@ -123,7 +122,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	// Section data
 	//MAX_ASSUMED_VALID_NUMBER_OF_RVA_AND_SIZES := 0x100
 	var numRvaAndSizes uint32
-	
+
 	msg := "Suspicious NumberOfRvaAndSizes in the Optional Header."
 	msg += "Normal values are never larger than 0x10, the value is: 0x%x\n"
 
@@ -133,7 +132,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	if pe.OptionalHeader64 != nil {
 		if pe.OptionalHeader64.Data.NumberOfRvaAndSizes > 0x10 {
-			log.Printf(msg,	pe.OptionalHeader64.Data.NumberOfRvaAndSizes)
+			log.Printf(msg, pe.OptionalHeader64.Data.NumberOfRvaAndSizes)
 		}
 		numRvaAndSizes = pe.OptionalHeader64.Data.NumberOfRvaAndSizes
 		offset += pe.OptionalHeader64.Size
@@ -147,10 +146,10 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 		offset += pe.OptionalHeader.Size
 		dataDir = pe.OptionalHeader.DataDirs
 	}
-	
-	for i := uint32(0); i < 0x7fffffff & numRvaAndSizes; i ++ {
 
-		if pe.dataLen - offset == 0 {
+	for i := uint32(0); i < 0x7fffffff&numRvaAndSizes; i++ {
+
+		if pe.dataLen-offset == 0 {
 			break
 		}
 
@@ -160,9 +159,9 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 		}
 		offset += dirEntry.Size
 		name, ok := lib.DirectoryEntryTypes[i]
-		
+
 		dirEntry.Name = name
-		
+
 		if !ok {
 			break
 		}
@@ -188,7 +187,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	err = pe.parseDataDirectories()
 	if err != nil {
-		return nil , err
+		return nil, err
 	}
 	/*offset, err = pe.parseRichHeader()
 	if err != nil {
@@ -199,6 +198,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 }
 
 type ByVAddr []*lib.SectionHeader
+
 func (self ByVAddr) Len() int {
 	return len(self)
 }
@@ -211,7 +211,7 @@ func (s ByVAddr) Less(i, j int) bool {
 
 func (self *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	newOffset = offset
-	for i := uint32(0); i < uint32(self.FileHeader.Data.NumberOfSections); i ++ {
+	for i := uint32(0); i < uint32(self.FileHeader.Data.NumberOfSections); i++ {
 		section := lib.NewSectionHeader(newOffset)
 		if err = self.parseHeader(&section.Data, newOffset, section.Size); err != nil {
 			return 0, err
@@ -224,19 +224,19 @@ func (self *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 
 		// Suspecious check L2383 - L2395
 		self.Sections = append(self.Sections, section)
-		
+
 		newOffset += section.Size
 	}
-	
+
 	// Sort the sections by their VirtualAddress and add a field to each of them
 	// with the VirtualAddress of the next section. This will allow to check
 	// for potentially overlapping sections in badly constructed PEs.
 	sort.Sort(ByVAddr(self.Sections))
 	for idx, section := range self.Sections {
-		if idx == len(self.Sections) - 1 {
+		if idx == len(self.Sections)-1 {
 			section.NextHeaderAddr = 0
 		} else {
-			section.NextHeaderAddr = self.Sections[idx + 1].Data.VirtualAddress
+			section.NextHeaderAddr = self.Sections[idx+1].Data.VirtualAddress
 		}
 	}
 
@@ -244,7 +244,7 @@ func (self *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 }
 
 func (self *PEFile) parseHeader(iface interface{}, offset, size uint32) (err error) {
-	buf := bytes.NewReader(self.data[offset : offset + size])
+	buf := bytes.NewReader(self.data[offset : offset+size])
 	err = binary.Read(buf, binary.LittleEndian, iface)
 	if err != nil {
 		return err
@@ -259,7 +259,7 @@ func (self *PEFile) parseDataDirectories() error {
 		"IMAGE_DIRECTORY_ENTRY_IMPORT": self.parseImportDirectory,
 		"IMAGE_DIRECTORY_ENTRY_EXPORT": self.parseExportDirectory,
 		//"IMAGE_DIRECTORY_ENTRY_RESOURCE": self.parse_resources_directory,
-		
+
 		// TODO at a later time
 		//"IMAGE_DIRECTORY_ENTRY_DEBUG": self.parseDebugDirectory,
 		//"IMAGE_DIRECTORY_ENTRY_BASERELOC": self.parseRelocationsDirectory,
@@ -276,8 +276,10 @@ func (self *PEFile) parseDataDirectories() error {
 	}
 	for name, dirEntry := range dataDirs {
 		if dirEntry.Data.VirtualAddress > 0 {
-			parser, ok := funcMap[name] 
-			if !ok { continue }
+			parser, ok := funcMap[name]
+			if !ok {
+				continue
+			}
 			err := parser.(func(uint32, uint32) error)(dirEntry.Data.VirtualAddress, dirEntry.Data.Size)
 			if err != nil {
 				return err
@@ -292,18 +294,18 @@ func (self *PEFile) getSectionByRva(rva uint32) *lib.SectionHeader {
 	for _, section := range self.Sections {
 		var size uint32
 		adjustedPointer := self.adjustFileAlignment(section.Data.PointerToRawData)
-		if self.dataLen - adjustedPointer < section.Data.SizeOfRawData {
+		if self.dataLen-adjustedPointer < section.Data.SizeOfRawData {
 			size = section.Data.Misc
 		} else {
 			size = Max(section.Data.SizeOfRawData, section.Data.Misc)
 		}
 		vaddr := self.adjustSectionAlignment(section.Data.VirtualAddress)
 
-		if section.NextHeaderAddr != 0 && section.NextHeaderAddr > section.Data.VirtualAddress && vaddr + size > section.NextHeaderAddr {
+		if section.NextHeaderAddr != 0 && section.NextHeaderAddr > section.Data.VirtualAddress && vaddr+size > section.NextHeaderAddr {
 			size = section.NextHeaderAddr - vaddr
 		}
 
-		if vaddr <= rva && rva < (vaddr + size) {
+		if vaddr <= rva && rva < (vaddr+size) {
 			return section
 		}
 	}
@@ -312,10 +314,12 @@ func (self *PEFile) getSectionByRva(rva uint32) *lib.SectionHeader {
 
 func (self *PEFile) getSectionByOffset(offset uint32) *lib.SectionHeader {
 	for _, section := range self.Sections {
-		if section.Data.PointerToRawData == 0 { continue }
-		
+		if section.Data.PointerToRawData == 0 {
+			continue
+		}
+
 		adjustedPointer := self.adjustFileAlignment(section.Data.PointerToRawData)
-		if adjustedPointer <= offset && offset < (adjustedPointer + section.Data.SizeOfRawData) {
+		if adjustedPointer <= offset && offset < (adjustedPointer+section.Data.SizeOfRawData) {
 			return section
 		}
 	}
@@ -327,7 +331,9 @@ func (self *PEFile) getRvaFromOffset(offset uint32) uint32 {
 	minAddr := ^uint32(0)
 	if section == nil {
 
-		if len(self.Sections) == 0 { return offset }
+		if len(self.Sections) == 0 {
+			return offset
+		}
 
 		for _, section := range self.Sections {
 			vaddr := self.adjustSectionAlignment(section.Data.VirtualAddress)
@@ -340,7 +346,9 @@ func (self *PEFile) getRvaFromOffset(offset uint32) uint32 {
 		// http://corkami.blogspot.com/2010/01/hey-hey-hey-whats-in-your-head.html
 		// where the import table is not contained by any section
 		// hence the RVA needs to be resolved to a raw offset
-		if offset < minAddr { return offset }
+		if offset < minAddr {
+			return offset
+		}
 
 		log.Println("data at Offset can't be fetched. Corrupt header?")
 		return ^uint32(0)
@@ -379,7 +387,7 @@ func (self *PEFile) getOffsetFromRva(rva uint32) uint32 {
 // The following is a hard-coded constant if the Windows loader
 func (self *PEFile) adjustFileAlignment(pointer uint32) uint32 {
 	fileAlignment := self.OptionalHeader.Data.FileAlignment
-		
+
 	if fileAlignment > FILE_ALIGNMENT_HARDCODED_VALUE {
 		// If it's not a power of two, report it:
 		if !PowerOfTwo(fileAlignment) {
@@ -411,13 +419,13 @@ func (self *PEFile) adjustSectionAlignment(pointer uint32) uint32 {
 		sectionAlignment = fileAlignment
 	}
 	// else if sectionAlignment < 0x80 {
-		// 0x200 is the minimum valid FileAlignment according to the documentation
-		// although ntoskrnl.exe has an alignment of 0x80 in some Windows versions
+	// 0x200 is the minimum valid FileAlignment according to the documentation
+	// although ntoskrnl.exe has an alignment of 0x80 in some Windows versions
 	//	sectionAlignment = 0x80
 	//}
 
-	if sectionAlignment != 0 && (pointer % sectionAlignment) != 0 {
-		return sectionAlignment * ( pointer / sectionAlignment )
+	if sectionAlignment != 0 && (pointer%sectionAlignment) != 0 {
+		return sectionAlignment * (pointer / sectionAlignment)
 	}
 	return pointer
 }
@@ -463,14 +471,14 @@ func (self *PEFile) getDataBounds(rva, length uint32) (start, size uint32) {
 	} else {
 		end = offset + section.Data.SizeOfRawData
 	}
-	if end > pointer + section.Data.SizeOfRawData {
+	if end > pointer+section.Data.SizeOfRawData {
 		end = section.Data.PointerToRawData + section.Data.SizeOfRawData
 	}
 	return offset, end
 }
 
-// Get an ASCII string from within the data at an RVA considering 
-// section 
+// Get an ASCII string from within the data at an RVA considering
+// section
 func (self *PEFile) getStringAtRva(rva uint32) []byte {
 	start, _ := self.getDataBounds(rva, 0)
 	return self.getStringFromData(start)
@@ -497,7 +505,7 @@ func (self *PEFile) getStringFromData(offset uint32) []byte {
 // greater than 0
 // fc91013eb72529da005110a3403541b6 example
 // Should this throw an exception in the minimum header offset
-// can't be found?		
+// can't be found?
 func (self *PEFile) calculateHeaderEnd(offset uint32) {
 	var rawDataPointers []uint32
 	for _, section := range self.Sections {
@@ -521,4 +529,3 @@ func (self *PEFile) calculateHeaderEnd(offset uint32) {
 		self.headerEnd = minSectionOffset
 	}
 }
-
