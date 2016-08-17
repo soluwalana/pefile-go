@@ -2,22 +2,22 @@ package pe
 
 import (
 	"errors"
-	"../lib"
 	"fmt"
+	"github.com/dgrif/pefile-go/lib"
 	//"reflect"
 	"log"
 )
 
 /* Parse the export directory.
 
-	Given the RVA of the export directory, it will process all
-	its entries.
+Given the RVA of the export directory, it will process all
+its entries.
 
-	The exports will be made available as a list of ExportData
-	instances in the ExportDescriptors PE attribute.
+The exports will be made available as a list of ExportData
+instances in the ExportDescriptors PE attribute.
 */
 func (self *PEFile) parseExportDirectory(rva, size uint32) (err error) {
-	
+
 	exportDir := lib.NewExportDirectory(self.getOffsetFromRva(rva))
 	start, _ := self.getDataBounds(rva, 0)
 	if err = self.parseHeader(&exportDir.Data, start, exportDir.Size); err != nil {
@@ -29,8 +29,7 @@ func (self *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 	startAddrOfNames, _ := self.getDataBounds(exportDir.Data.AddressOfNames, 0)
 	startAddrOfOrdinals, _ := self.getDataBounds(exportDir.Data.AddressOfNameOrdinals, 0)
 	startAddrOfFuncs, _ := self.getDataBounds(exportDir.Data.AddressOfFunctions, 0)
-	
-	
+
 	errMsg := "RVA %s in the export directory points to an invalid address: %x"
 	//maxErrors := 10
 
@@ -40,15 +39,15 @@ func (self *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		return errors.New(fmt.Sprintf(errMsg, "AddressOfNames", exportDir.Data.AddressOfNames))
 
 	}
-	
+
 	safetyBoundary := section.Data.VirtualAddress + section.Data.SizeOfRawData - exportDir.Data.AddressOfNames
-	numNames := Min(safetyBoundary / 4, exportDir.Data.NumberOfNames)
+	numNames := Min(safetyBoundary/4, exportDir.Data.NumberOfNames)
 
 	// A hash set for tracking seen ordinals
 	ordMap := make(map[uint16]bool)
 
 	fmt.Printf("Safety boundary %x, num names %d\n", safetyBoundary, numNames)
-	for i := uint32(0); i < numNames; i ++ {
+	for i := uint32(0); i < numNames; i++ {
 		sym := new(lib.ExportData)
 
 		// Name and name offset
@@ -69,7 +68,7 @@ func (self *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		if err = self.parseHeader(&sym.Ordinal, sym.OrdinalOffset, 2); err != nil {
 			return err
 		}
-			
+
 		// Address
 		sym.AddressOffset = startAddrOfFuncs + (uint32(sym.Ordinal) * 4)
 		if err = self.parseHeader(&sym.Address, sym.AddressOffset, 4); err != nil {
@@ -80,7 +79,7 @@ func (self *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		}
 
 		// Forwarder if applicable
-		if sym.Address >= rva && sym.Address < rva + size {
+		if sym.Address >= rva && sym.Address < rva+size {
 			sym.Forwarder = self.getStringAtRva(sym.Address)
 			sym.ForwarderOffset = self.getOffsetFromRva(sym.Address)
 		}
@@ -98,11 +97,11 @@ func (self *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		return errors.New(fmt.Sprintf(errMsg, "AddressOfFunctions", exportDir.Data.AddressOfFunctions))
 	}
 	safetyBoundary = section.Data.VirtualAddress + section.Data.SizeOfRawData - exportDir.Data.AddressOfFunctions
-	numNames = Min(safetyBoundary / 4, exportDir.Data.NumberOfFunctions)
+	numNames = Min(safetyBoundary/4, exportDir.Data.NumberOfFunctions)
 
 	fmt.Printf("Safety2 boundary %x, num names %d\n", safetyBoundary, numNames)
-	for i := uint32(0); i < numNames; i ++ {
-		if _, ok := ordMap[uint16(i + exportDir.Data.Base)]; ok {
+	for i := uint32(0); i < numNames; i++ {
+		if _, ok := ordMap[uint16(i+exportDir.Data.Base)]; ok {
 			continue
 		}
 
@@ -118,7 +117,7 @@ func (self *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		}
 
 		// Forwarder if applicable
-		if sym.Address >= rva && sym.Address < rva + size {
+		if sym.Address >= rva && sym.Address < rva+size {
 			sym.Forwarder = self.getStringAtRva(sym.Address)
 			sym.ForwarderOffset = self.getOffsetFromRva(sym.Address)
 		}

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"./pe"
+	"github.com/dgrif/pefile-go/pe"
 	"log"
 	"os"
 )
+
 func main() {
 	log.Println("hello everyone, lets parse your PEFile")
 	args := os.Args[1:]

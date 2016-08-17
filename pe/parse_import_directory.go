@@ -4,25 +4,25 @@ package pe
 
 import (
 	"errors"
-	"../lib"
 	"fmt"
-	"reflect"
+	"github.com/dgrif/pefile-go/lib"
 	"log"
+	"reflect"
 )
 
 /* Parse the import directory.
 
-	Given the RVA of the export directory, it will process all
-	its entries.
+Given the RVA of the export directory, it will process all
+its entries.
 
-	The exports will be made available as a list of ImportData
-	instances in the ImportDescriptors PE attribute.
+The exports will be made available as a list of ImportData
+instances in the ImportDescriptors PE attribute.
 */
 func (self *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 	self.ImportDescriptors = make([]*lib.ImportDescriptor, 0)
 
 	for {
-		
+
 		fileOffset := self.getOffsetFromRva(rva)
 		importDesc := lib.NewImportDescriptor(fileOffset)
 
@@ -38,8 +38,8 @@ func (self *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 		if lib.EmptyStruct(importDesc.Data) {
 			break
 		}
-		
-		rva += importDesc.Size	
+
+		rva += importDesc.Size
 
 		importDesc.Dll = self.getStringAtRva(importDesc.Data.Name)
 		if !validDosFilename(importDesc.Dll) {
@@ -77,7 +77,7 @@ func (self *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 	return nil
 }
 
-/* 
+/*
 	Parse the imported symbols.
 
 	It will fill a list, which will be available as the dictionary
@@ -87,14 +87,18 @@ func (self *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 func (self *PEFile) parseImports(importDesc *lib.ImportDescriptor) (err error) {
 	var table []*lib.ThunkData
 	ilt, err := self.getImportTable(importDesc.Data.Characteristics, importDesc)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	iat, err := self.getImportTable(importDesc.Data.FirstThunk, importDesc)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	if len(iat) == 0 && len(ilt) == 0 {
 		return errors.New("Invalid Import Table information. Both ILT and IAT appear to be broken.")
 	}
-	
+
 	impOffset := uint32(0x4)
 	addressMask := uint32(0x7fffffff)
 	ordinalFlag := IMAGE_ORDINAL_FLAG
@@ -107,15 +111,15 @@ func (self *PEFile) parseImports(importDesc *lib.ImportDescriptor) (err error) {
 		table = iat
 	}
 
-	for idx := uint32(0); idx < uint32(len(table)); idx ++ {
+	for idx := uint32(0); idx < uint32(len(table)); idx++ {
 		imp := new(lib.ImportData)
 		imp.StructTable = table[idx]
 		imp.OrdinalOffset = table[idx].FileOffset
 
 		if table[idx].Data.AddressOfData > 0 {
-			
+
 			// If imported by ordinal, we will append the ordinal numberx
-			if table[idx].Data.AddressOfData & ordinalFlag > 0 {
+			if table[idx].Data.AddressOfData&ordinalFlag > 0 {
 				imp.ImportByOrdinal = true
 				imp.Ordinal = table[idx].Data.AddressOfData & uint32(0xffff)
 			} else {
@@ -131,42 +135,42 @@ func (self *PEFile) parseImports(importDesc *lib.ImportDescriptor) (err error) {
 				if !validFuncName(imp.Name) {
 					imp.Name = INVALID_IMP_NAME
 				}
-				imp.NameOffset = self.getOffsetFromRva(table[idx].Data.AddressOfData + 2)		
+				imp.NameOffset = self.getOffsetFromRva(table[idx].Data.AddressOfData + 2)
 			}
 			imp.ThunkOffset = table[idx].FileOffset
 			imp.ThunkRva = self.getRvaFromOffset(imp.ThunkOffset)
-		} 
+		}
 
 		imp.Address = importDesc.Data.FirstThunk + self.OptionalHeader.Data.ImageBase + (idx * impOffset)
 
-	 	if len(iat)	> 0 && len(ilt) > 0 &&  ilt[idx].Data.AddressOfData != iat[idx].Data.AddressOfData {
-	 		imp.Bound = iat[idx].Data.AddressOfData
-	 		imp.StructIat = iat[idx]
-	 	}
-	
-	 	hasName := len(imp.Name) > 0
+		if len(iat) > 0 && len(ilt) > 0 && ilt[idx].Data.AddressOfData != iat[idx].Data.AddressOfData {
+			imp.Bound = iat[idx].Data.AddressOfData
+			imp.StructIat = iat[idx]
+		}
+
+		hasName := len(imp.Name) > 0
 
 		// The file with hashe:
 		// SHA256: 3d22f8b001423cb460811ab4f4789f277b35838d45c62ec0454c877e7c82c7f5
 		// has an invalid table built in a way that it's parseable but contains
 		// invalid entries
-	 	if imp.Ordinal == 0 && !hasName {
-	 		return errors.New("Must have either an ordinal or a name in an import")
-	 	}
-	 	// Some PEs appear to interleave valid and invalid imports. Instead of
-	 	// aborting the parsing altogether we will simply skip the invalid entries.
-	 	// Although if we see 1000 invalid entries and no legit ones, we abort.
-	 	if reflect.DeepEqual(imp.Name, INVALID_IMP_NAME) {
-	 		if numInvalid > 1000 && numInvalid == idx {
-	 			return errors.New("Too many invalid names, aborting parsing")
-	 		}
-	 		numInvalid += 1
-	 		continue
-	 	}
+		if imp.Ordinal == 0 && !hasName {
+			return errors.New("Must have either an ordinal or a name in an import")
+		}
+		// Some PEs appear to interleave valid and invalid imports. Instead of
+		// aborting the parsing altogether we will simply skip the invalid entries.
+		// Although if we see 1000 invalid entries and no legit ones, we abort.
+		if reflect.DeepEqual(imp.Name, INVALID_IMP_NAME) {
+			if numInvalid > 1000 && numInvalid == idx {
+				return errors.New("Too many invalid names, aborting parsing")
+			}
+			numInvalid += 1
+			continue
+		}
 
-	 	if imp.Ordinal > 0 || hasName {
-	 		importDesc.Imports = append(importDesc.Imports, imp)
-	 	}
+		if imp.Ordinal > 0 || hasName {
+			importDesc.Imports = append(importDesc.Imports, imp)
+		}
 	}
 
 	return nil
@@ -189,7 +193,7 @@ func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor)
 
 	maxLen := self.dataLen - importDesc.FileOffset
 	if rva > importDesc.Data.Characteristics || rva > importDesc.Data.FirstThunk {
-		maxLen = Max(rva - importDesc.Data.Characteristics, rva - importDesc.Data.FirstThunk)
+		maxLen = Max(rva-importDesc.Data.Characteristics, rva-importDesc.Data.FirstThunk)
 	}
 	lastAddr := rva + maxLen
 
@@ -208,7 +212,7 @@ func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor)
 		// if the addresses point somewhere but the difference between the highest
 		// and lowest address is larger than MAX_ADDRESS_SPREAD we assume a bogus
 		// table as the addresses should be contained within a module
-		if maxAddressOfData - minAddressOfData > MAX_ADDRESS_SPREAD {
+		if maxAddressOfData-minAddressOfData > MAX_ADDRESS_SPREAD {
 			return []*lib.ThunkData{}, errors.New("data addresses too spread out")
 		}
 
@@ -229,23 +233,23 @@ func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor)
 		// Seen in PE with SHA256:
 		// 5945bb6f0ac879ddf61b1c284f3b8d20c06b228e75ae4f571fa87f5b9512902c
 		if thunk.Data.AddressOfData >= startRva && thunk.Data.AddressOfData <= rva {
-			log.Printf("Error parsing the import table. " + 
-				"AddressOfData overlaps with THUNK_DATA for THUNK at:\n  " + 
+			log.Printf("Error parsing the import table. "+
+				"AddressOfData overlaps with THUNK_DATA for THUNK at:\n  "+
 				"RVA 0x%x", rva)
 			break
 		}
 
 		if thunk.Data.AddressOfData > 0 {
 			// If the entry looks like could be an ordinal...
-			if thunk.Data.AddressOfData & ordinalFlag > 0 {
+			if thunk.Data.AddressOfData&ordinalFlag > 0 {
 				// but its value is beyond 2^16, we will assume it's a
 				// corrupted and ignore it altogether
-				if thunk.Data.AddressOfData & uint32(0x7fffffff) > uint32(0xffff) {
+				if thunk.Data.AddressOfData&uint32(0x7fffffff) > uint32(0xffff) {
 					msg := fmt.Sprintf("Corruption detected in thunk data at 0x%x", rva)
 					log.Printf(msg)
 					return []*lib.ThunkData{}, errors.New(msg)
 				}
-			// and if it looks like it should be an RVA
+				// and if it looks like it should be an RVA
 			} else {
 				// keep track of the RVAs seen and store them to study their
 				// properties. When certain non-standard features are detected
@@ -278,4 +282,3 @@ func (self *PEFile) getImportTable64(rva uint64) []*lib.ThunkData64 {
 	// todo not implemeted yet
 	return []*lib.ThunkData64{}
 }
-
