@@ -296,7 +296,7 @@ func (pe *PEFile) getSectionByRva(rva uint32) *SectionHeader {
 		if pe.dataLen-adjustedPointer < section.Data.SizeOfRawData {
 			size = section.Data.Misc
 		} else {
-			size = Max(section.Data.SizeOfRawData, section.Data.Misc)
+			size = max(section.Data.SizeOfRawData, section.Data.Misc)
 		}
 		vaddr := pe.adjustSectionAlignment(section.Data.VirtualAddress)
 
@@ -442,7 +442,7 @@ func (pe *PEFile) getDataBounds(rva, length uint32) (start, size uint32) {
 	}
 	if section == nil {
 		if rva < pe.headerEnd {
-			end = Min(end, pe.headerEnd)
+			end = min(end, pe.headerEnd)
 		}
 		// Before we give up we check whether the file might
 		// contain the data anyway. There are cases of PE files

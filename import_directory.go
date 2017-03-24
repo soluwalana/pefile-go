@@ -41,8 +41,8 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 		rva += importDesc.Size
 
 		importDesc.Dll = pe.getStringAtRva(importDesc.Data.Name)
-		if !validDosFilename(importDesc.Dll) {
-			importDesc.Dll = INVALID_IMP_NAME
+		if !isValidDosFilename(importDesc.Dll) {
+			importDesc.Dll = invalidImportName
 		}
 
 		if pe.OptionalHeader64 != nil {
@@ -129,8 +129,8 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 
 				imp.Name = pe.getStringAtRva(table[idx].Data.AddressOfData + 2)
 
-				if !validFuncName(imp.Name) {
-					imp.Name = INVALID_IMP_NAME
+				if !isValidFuncName(imp.Name) {
+					imp.Name = invalidImportName
 				}
 				imp.NameOffset = pe.getOffsetFromRva(table[idx].Data.AddressOfData + 2)
 			}
@@ -157,7 +157,7 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 		// Some PEs appear to interleave valid and invalid imports. Instead of
 		// aborting the parsing altogether we will simply skip the invalid entries.
 		// Although if we see 1000 invalid entries and no legit ones, we abort.
-		if reflect.DeepEqual(imp.Name, INVALID_IMP_NAME) {
+		if reflect.DeepEqual(imp.Name, invalidImportName) {
 			if numInvalid > 1000 && numInvalid == idx {
 				return errors.New("Too many invalid names, aborting parsing")
 			}
@@ -190,7 +190,7 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]*T
 
 	maxLen := pe.dataLen - importDesc.FileOffset
 	if rva > importDesc.Data.Characteristics || rva > importDesc.Data.FirstThunk {
-		maxLen = Max(rva-importDesc.Data.Characteristics, rva-importDesc.Data.FirstThunk)
+		maxLen = max(rva-importDesc.Data.Characteristics, rva-importDesc.Data.FirstThunk)
 	}
 	lastAddr := rva + maxLen
 

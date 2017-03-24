@@ -39,7 +39,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 	}
 
 	safetyBoundary := section.Data.VirtualAddress + section.Data.SizeOfRawData - exportDir.Data.AddressOfNames
-	numNames := Min(safetyBoundary/4, exportDir.Data.NumberOfNames)
+	numNames := min(safetyBoundary/4, exportDir.Data.NumberOfNames)
 
 	// A hash set for tracking seen ordinals
 	ordMap := make(map[uint16]bool)
@@ -56,7 +56,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		}
 		sym.Name = pe.getStringAtRva(symNameAddr)
 		log.Printf("%s\n", sym.Name)
-		if !validFuncName(sym.Name) {
+		if !isValidFuncName(sym.Name) {
 			break
 		}
 		sym.NameOffset = pe.getOffsetFromRva(symNameAddr)
@@ -95,7 +95,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		return fmt.Errorf(errMsg, "AddressOfFunctions", exportDir.Data.AddressOfFunctions)
 	}
 	safetyBoundary = section.Data.VirtualAddress + section.Data.SizeOfRawData - exportDir.Data.AddressOfFunctions
-	numNames = Min(safetyBoundary/4, exportDir.Data.NumberOfFunctions)
+	numNames = min(safetyBoundary/4, exportDir.Data.NumberOfFunctions)
 
 	fmt.Printf("Safety2 boundary %x, num names %d\n", safetyBoundary, numNames)
 	for i := uint32(0); i < numNames; i++ {
