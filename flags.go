@@ -1,7 +1,6 @@
 package pefile
 
-/* Flags */
-
+// ImageCharacteristics is a lookup from the string name to flag value
 var ImageCharacteristics = map[string]uint32{
 	"IMAGE_FILE_RELOCS_STRIPPED":         0x0001,
 	"IMAGE_FILE_EXECUTABLE_IMAGE":        0x0002,
@@ -21,6 +20,8 @@ var ImageCharacteristics = map[string]uint32{
 	"IMAGE_FILE_BYTES_REVERSED_HI":       0x8000,
 }
 
+// DirectoryEntryTypes provides names for the entries in the data directory
+// header
 var DirectoryEntryTypes = map[uint32]string{
 	0:  "IMAGE_DIRECTORY_ENTRY_EXPORT",
 	1:  "IMAGE_DIRECTORY_ENTRY_IMPORT",
@@ -40,6 +41,7 @@ var DirectoryEntryTypes = map[uint32]string{
 	15: "IMAGE_DIRECTORY_ENTRY_RESERVED",
 }
 
+// SectionCharacteristics is a lookup from the string name to flag value
 var SectionCharacteristics = map[string]uint32{
 	"IMAGE_SCN_TYPE_REG":    0x00000000, // reserved
 	"IMAGE_SCN_TYPE_DSECT":  0x00000001, // reserved
@@ -94,6 +96,7 @@ var SectionCharacteristics = map[string]uint32{
 	"IMAGE_SCN_MEM_WRITE":       0x80000000,
 }
 
+// DebugTypes is a lookup from the string name to flag value
 var DebugTypes = map[string]uint32{
 	"IMAGE_DEBUG_TYPE_UNKNOWN":       0,
 	"IMAGE_DEBUG_TYPE_COFF":          1,
@@ -109,6 +112,7 @@ var DebugTypes = map[string]uint32{
 	"IMAGE_DEBUG_TYPE_CLSID":         11,
 }
 
+// SubsystemTypes is a lookup from the string name to flag value
 var SubsystemTypes = map[string]uint32{
 	"IMAGE_SUBSYSTEM_UNKNOWN":                  0,
 	"IMAGE_SUBSYSTEM_NATIVE":                   1,
@@ -126,7 +130,8 @@ var SubsystemTypes = map[string]uint32{
 	"IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION": 16,
 }
 
-var MachineTypes = map[string]uint32{
+// MachineTypes is a lookup from string name to the value of the flag
+var MachineTypes = map[string]uint16{
 	"IMAGE_FILE_MACHINE_UNKNOWN":   0,
 	"IMAGE_FILE_MACHINE_I386":      0x014c,
 	"IMAGE_FILE_MACHINE_R3000":     0x0162,
@@ -159,6 +164,7 @@ var MachineTypes = map[string]uint32{
 	"IMAGE_FILE_MACHINE_CEE":       0xc0ee,
 }
 
+// RelocationTypes is map from the string name to the flag value
 var RelocationTypes = map[string]uint32{
 	"IMAGE_REL_BASED_ABSOLUTE":       0,
 	"IMAGE_REL_BASED_HIGH":           1,
@@ -174,6 +180,7 @@ var RelocationTypes = map[string]uint32{
 	"IMAGE_REL_BASED_HIGH3ADJ":       11,
 }
 
+// DllCharacteristics flags define some OS specific functionality
 var DllCharacteristics = map[string]uint32{
 	"IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA":       0x0020,
 	"IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE":          0x0040,
@@ -188,7 +195,7 @@ var DllCharacteristics = map[string]uint32{
 	"IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE": 0x8000,
 }
 
-// Resource types
+// ResourceType names and flag values
 var ResourceType = map[string]uint32{
 	"RT_CURSOR":       1,
 	"RT_BITMAP":       2,
@@ -213,7 +220,7 @@ var ResourceType = map[string]uint32{
 	"RT_MANIFEST":     24,
 }
 
-// Language definitions
+// Lang language definitions
 var Lang = map[string]uint32{
 	"LANG_NEUTRAL":        0x00,
 	"LANG_INVARIANT":      0x7f,
@@ -311,7 +318,7 @@ var Lang = map[string]uint32{
 	"LANG_BRETON":         0x93,
 }
 
-// Sublanguage definitions
+// Sublang sublanguage definitions
 var Sublang = map[string]uint32{
 	"SUBLANG_NEUTRAL":                    0x00,
 	"SUBLANG_DEFAULT":                    0x01,
