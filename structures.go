@@ -8,6 +8,7 @@ import (
 
 /* Dos Header */
 
+// DosHeader wrapper
 type DosHeader struct {
 	Data       DosHeaderD
 	FileOffset uint32
@@ -15,18 +16,19 @@ type DosHeader struct {
 	Size       uint32
 }
 
-func newDosHeader(fileOffset uint32) (header *DosHeader) {
-	header = new(DosHeader)
-	header.Flags = make(map[string]bool)
-	header.Size = uint32(binary.Size(header.Data))
-	header.FileOffset = fileOffset
-	return header
+func newDosHeader(fileOffset uint32) DosHeader {
+	return DosHeader{
+		Flags:      make(map[string]bool),
+		Size:       uint32(binary.Size(DosHeaderD{})),
+		FileOffset: fileOffset,
+	}
 }
 
 func (dh *DosHeader) String() string {
 	return sectionString(dh.FileOffset, "IMAGE_DOS_HEADER", dh.Data) + flagString(dh.Flags)
 }
 
+// DosHeaderD raw data field read from the file
 type DosHeaderD struct {
 	E_magic    uint16
 	E_cblp     uint16
@@ -49,6 +51,7 @@ type DosHeaderD struct {
 	E_lfanew   uint32
 }
 
+// NTHeader wrapper
 type NTHeader struct {
 	Data       NTHeaderD
 	FileOffset uint32
@@ -56,16 +59,15 @@ type NTHeader struct {
 	Size       uint32
 }
 
-/* NT Header */
-
-func newNTHeader(fileOffset uint32) (header *NTHeader) {
-	header = new(NTHeader)
-	header.Flags = make(map[string]bool)
-	header.Size = uint32(binary.Size(header.Data))
-	header.FileOffset = fileOffset
-	return header
+func newNTHeader(fileOffset uint32) NTHeader {
+	return NTHeader{
+		Flags:      make(map[string]bool),
+		Size:       uint32(binary.Size(NTHeaderD{})),
+		FileOffset: fileOffset,
+	}
 }
 
+// NTHeaderD raw data field read from the file
 type NTHeaderD struct {
 	Signature uint32
 }
@@ -74,28 +76,28 @@ func (nth *NTHeader) String() string {
 	return sectionString(nth.FileOffset, "IMAGE_NT_HEADER", nth.Data) + flagString(nth.Flags)
 }
 
-/* File Header */
-
-type FileHeader struct {
-	Data       FileHeaderD
+// COFFFileHeader wrapper
+type COFFFileHeader struct {
+	Data       COFFFileHeaderD
 	FileOffset uint32
 	Flags      map[string]bool
 	Size       uint32
 }
 
-func newFileHeader(fileOffset uint32) (header *FileHeader) {
-	header = new(FileHeader)
-	header.Flags = make(map[string]bool)
-	header.Size = uint32(binary.Size(header.Data))
-	header.FileOffset = fileOffset
-	return header
+func newCOFFFileHeader(fileOffset uint32) COFFFileHeader {
+	return COFFFileHeader{
+		Flags:      make(map[string]bool),
+		Size:       uint32(binary.Size(COFFFileHeaderD{})),
+		FileOffset: fileOffset,
+	}
 }
 
-func (fh *FileHeader) String() string {
-	return sectionString(fh.FileOffset, "IMAGE_FILE_HEADER", fh.Data) + flagString(fh.Flags)
+func (fh *COFFFileHeader) String() string {
+	return sectionString(fh.FileOffset, "COFF_FILE_HEADER", fh.Data) + flagString(fh.Flags)
 }
 
-type FileHeaderD struct {
+// COFFFileHeaderD raw data field read from the file
+type COFFFileHeaderD struct {
 	Machine              uint16
 	NumberOfSections     uint16
 	TimeDateStamp        uint32
@@ -105,8 +107,7 @@ type FileHeaderD struct {
 	Characteristics      uint16
 }
 
-/* Optional Header */
-
+// OptionalHeader wrapper
 type OptionalHeader struct {
 	Data       OptionalHeaderD
 	FileOffset uint32
@@ -128,6 +129,7 @@ func (od *OptionalHeader) String() string {
 	return sectionString(od.FileOffset, "OPTIONAL_HEADER", od.Data) + flagString(od.Flags)
 }
 
+// OptionalHeaderD raw data field read from the file
 type OptionalHeaderD struct {
 	Magic                       uint16
 	MajorLinkerVersion          uint8
@@ -161,6 +163,7 @@ type OptionalHeaderD struct {
 	NumberOfRvaAndSizes         uint32
 }
 
+// OptionalHeader64 wrapper
 type OptionalHeader64 struct {
 	Data       OptionalHeader64D
 	FileOffset uint32
@@ -182,6 +185,7 @@ func (oh *OptionalHeader64) String() string {
 	return sectionString(oh.FileOffset, "OPTIONAL_HEADER64", oh.Data) + flagString(oh.Flags)
 }
 
+// OptionalHeader64D raw data field read from the file
 type OptionalHeader64D struct {
 	Magic                       uint16
 	MajorLinkerVersion          uint8
@@ -215,8 +219,7 @@ type OptionalHeader64D struct {
 	NumberOfRvaAndSizes         uint32
 }
 
-/* Data directory */
-
+// DataDirectory wrapper
 type DataDirectory struct {
 	Data       DataDirectoryD
 	FileOffset uint32
@@ -224,6 +227,7 @@ type DataDirectory struct {
 	Size       uint32
 }
 
+// DataDirectoryD raw data field read from the file
 type DataDirectoryD struct {
 	VirtualAddress uint32
 	Size           uint32
@@ -240,8 +244,7 @@ func (dd *DataDirectory) String() string {
 	return sectionString(dd.FileOffset, "DATA_DIRECTORY", dd.Data)
 }
 
-/* Image Section */
-
+// SectionHeader wrapper
 type SectionHeader struct {
 	Data           SectionHeaderD
 	FileOffset     uint32
@@ -262,6 +265,7 @@ func (sh *SectionHeader) String() string {
 	return sectionString(sh.FileOffset, "SECTION_HEADER", sh.Data) + flagString(sh.Flags)
 }
 
+// SectionHeaderD raw data field read from the file
 type SectionHeaderD struct {
 	Name                 [8]uint8
 	Misc                 uint32
@@ -275,6 +279,7 @@ type SectionHeaderD struct {
 	Characteristics      uint32
 }
 
+// ImportDescriptorD raw data field read from the file
 type ImportDescriptorD struct {
 	Characteristics uint32
 	TimeDateStamp   uint32
@@ -283,7 +288,7 @@ type ImportDescriptorD struct {
 	FirstThunk      uint32
 }
 
-/* Image Import Descriptor */
+// ImportDescriptor wrapper
 type ImportDescriptor struct {
 	Data       ImportDescriptorD
 	FileOffset uint32
@@ -306,6 +311,7 @@ func (id *ImportDescriptor) String() string {
 	return sectionString(id.FileOffset, "IMPORT_DESCRIPTOR", id.Data) + flagString(id.Flags)
 }
 
+// ImportData wrapper
 type ImportData struct {
 	StructTable      ThunkData
 	StructIat        ThunkData
@@ -326,6 +332,7 @@ func (id ImportData) String() string {
 	return sectionString(0, "Import Data", id)
 }
 
+// ImportData64 64-bit version wrapper
 type ImportData64 struct {
 	StructTable      *ThunkData64
 	StructIat        *ThunkData64
@@ -346,7 +353,7 @@ func (id ImportData64) String() string {
 	return sectionString(0, "Import Data 64bit", id)
 }
 
-/* Delay Import Descriptor */
+// DelayImportDescriptor wrapper
 type DelayImportDescriptor struct {
 	Data       DelayImportDescriptorD
 	FileOffset uint32
@@ -366,6 +373,7 @@ func (did *DelayImportDescriptor) String() string {
 	return sectionString(did.FileOffset, "DELAY_IMPORT_DESCRIPTOR", did.Data) + flagString(did.Flags)
 }
 
+// DelayImportDescriptorD raw data field read from the file
 type DelayImportDescriptorD struct {
 	DIgrAttrs     uint32
 	DIszName      uint32
@@ -377,7 +385,7 @@ type DelayImportDescriptorD struct {
 	DIdwTimeStamp uint32
 }
 
-/* Export Directory */
+// ExportDirectory wrapper
 type ExportDirectory struct {
 	Data       ExportDirectoryD
 	FileOffset uint32
@@ -398,6 +406,7 @@ func (ed *ExportDirectory) String() string {
 	return sectionString(ed.FileOffset, "EXPORT_DIRECTORY", ed.Data) + flagString(ed.Flags)
 }
 
+// ExportDirectoryD raw data field read from the file
 type ExportDirectoryD struct {
 	Characteristics       uint32
 	TimeDateStamp         uint32
@@ -412,6 +421,7 @@ type ExportDirectoryD struct {
 	AddressOfNameOrdinals uint32
 }
 
+// ExportData wrapper
 type ExportData struct {
 	Ordinal         uint16
 	OrdinalOffset   uint32
@@ -427,7 +437,7 @@ func (ed ExportData) String() string {
 	return sectionString(0, "Export Data", ed)
 }
 
-/* Resource Directory */
+// ResourceDirectory wrapper
 type ResourceDirectory struct {
 	Data       ResourceDirectoryD
 	FileOffset uint32
@@ -447,16 +457,17 @@ func (rd *ResourceDirectory) String() string {
 	return sectionString(rd.FileOffset, "RESOURCE_DIRECTORY", rd.Data) + flagString(rd.Flags)
 }
 
+// ResourceDirectoryD raw data field read from the file
 type ResourceDirectoryD struct {
 	Characteristics      uint32
 	TimeDateStamp        uint32
 	MajorVersion         uint16
 	MinorVersion         uint16
 	NumberOfNamedEntries uint16
-	NumberOfIdEntries    uint16
+	NumberOfIDEntries    uint16
 }
 
-/* Resource Directory Entry */
+// ResourceDirectoryEntry wrapper
 type ResourceDirectoryEntry struct {
 	Data       ResourceDirectoryEntryD
 	FileOffset uint32
@@ -474,12 +485,13 @@ func (rde *ResourceDirectoryEntry) String() string {
 	return sectionString(rde.FileOffset, "RESOURCE_DIRECTORY_ENTRY", rde.Data)
 }
 
+// ResourceDirectoryEntryD raw data field read from the file
 type ResourceDirectoryEntryD struct {
 	Name         uint32
 	OffsetToData uint32
 }
 
-/* Resource Data Entry */
+// ResourceDataEntry wrapper
 type ResourceDataEntry struct {
 	Data       ResourceDataEntryD
 	FileOffset uint32
@@ -497,6 +509,7 @@ func (rde *ResourceDataEntry) String() string {
 	return sectionString(rde.FileOffset, "RESOURCE_DATA_ENTRY", rde.Data)
 }
 
+// ResourceDataEntryD raw data field read from the file
 type ResourceDataEntryD struct {
 	OffsetToData uint32
 	Size         uint32
@@ -504,7 +517,7 @@ type ResourceDataEntryD struct {
 	Reserved     uint32
 }
 
-/* VS Version Info */
+// VSVersionInfo wrapper
 type VSVersionInfo struct {
 	Data       VSVersionInfoD
 	FileOffset uint32
@@ -522,13 +535,14 @@ func (v *VSVersionInfo) String() string {
 	return sectionString(v.FileOffset, "RESOURCE_DATA_ENTRY", v.Data)
 }
 
+// VSVersionInfoD raw data field read from the file
 type VSVersionInfoD struct {
 	Length      uint16
 	ValueLength uint16
 	Type        uint16
 }
 
-/* VSFixedFileInfo */
+// VSFixedFileInfo wrapper
 type VSFixedFileInfo struct {
 	Data       VSFixedFileInfoD
 	FileOffset uint32
@@ -546,6 +560,7 @@ func (v *VSFixedFileInfo) String() string {
 	return sectionString(v.FileOffset, "VSFixedFileInfo", v.Data)
 }
 
+// VSFixedFileInfoD raw data field read from the file
 type VSFixedFileInfoD struct {
 	Signature        uint32
 	StrucVersion     uint32
@@ -562,7 +577,7 @@ type VSFixedFileInfoD struct {
 	FileDateLS       uint32
 }
 
-/* StringFileInfo */
+// StringFileInfo wrapper
 type StringFileInfo struct {
 	Data       StringFileInfoD
 	FileOffset uint32
@@ -580,13 +595,14 @@ func (s *StringFileInfo) String() string {
 	return sectionString(s.FileOffset, "StringFileInfo", s.Data)
 }
 
+// StringFileInfoD raw data field read from the file
 type StringFileInfoD struct {
 	Length      uint16
 	ValueLength uint16
 	Type        uint16
 }
 
-/* StringTable */
+// StringTable wrapper
 type StringTable struct {
 	Data       StringTableD
 	FileOffset uint32
@@ -604,13 +620,14 @@ func (s *StringTable) String() string {
 	return sectionString(s.FileOffset, "StringTable", s.Data)
 }
 
+// StringTableD raw data field read from the file
 type StringTableD struct {
 	Length      uint16
 	ValueLength uint16
 	Type        uint16
 }
 
-/* String */
+// String table entry wrapper
 type String struct {
 	Data       StringD
 	FileOffset uint32
@@ -628,13 +645,14 @@ func (s *String) String() string {
 	return sectionString(s.FileOffset, "String", s.Data)
 }
 
+// StringD raw data field read from the file
 type StringD struct {
 	Length      uint16
 	ValueLength uint16
 	Type        uint16
 }
 
-/* Var */
+// Var wrapper
 type Var struct {
 	Data       VarD
 	FileOffset uint32
@@ -652,13 +670,14 @@ func (v *Var) String() string {
 	return sectionString(v.FileOffset, "Var", v.Data)
 }
 
+// VarD raw data field read from the file
 type VarD struct {
 	Length      uint16
 	ValueLength uint16
 	Type        uint16
 }
 
-// ThunkData
+// ThunkData wrapper
 type ThunkData struct {
 	Data       ThunkDataD
 	FileOffset uint32
@@ -675,11 +694,12 @@ func (t *ThunkData) String() string {
 	return sectionString(t.FileOffset, "ThunkData", t.Data)
 }
 
+// ThunkDataD raw field data read from the file
 type ThunkDataD struct {
 	AddressOfData uint32
 }
 
-/* ThunkData64 */
+// ThunkData64 wrapper
 type ThunkData64 struct {
 	Data       ThunkData64D
 	FileOffset uint32
@@ -697,11 +717,12 @@ func (t *ThunkData64) String() string {
 	return sectionString(t.FileOffset, "ThunkData64", t.Data)
 }
 
+// ThunkData64D raw field data read from the file
 type ThunkData64D struct {
 	AddressOfData uint64
 }
 
-/* DebugDirectory */
+// DebugDirectory wrapper
 type DebugDirectory struct {
 	Data       DebugDirectoryD
 	FileOffset uint32
@@ -721,6 +742,7 @@ func (dd *DebugDirectory) String() string {
 	return sectionString(dd.FileOffset, "DebugDirectory", dd.Data) + flagString(dd.Flags)
 }
 
+// DebugDirectoryD raw field data read from the file
 type DebugDirectoryD struct {
 	Characteristics  uint32
 	TimeDateStamp    uint32
@@ -732,7 +754,7 @@ type DebugDirectoryD struct {
 	PointerToRawData uint32
 }
 
-/* BaseRelocation */
+// BaseRelocation wrapper
 type BaseRelocation struct {
 	Data       BaseRelocationD
 	FileOffset uint32
@@ -750,12 +772,13 @@ func (br *BaseRelocation) String() string {
 	return sectionString(br.FileOffset, "BaseRelocation", br.Data)
 }
 
+// BaseRelocationD raw field data read from the file
 type BaseRelocationD struct {
 	VirtualAddress uint32
 	SizeOfBlock    uint32
 }
 
-/* BaseRelocationEntry */
+// BaseRelocationEntry wrapper
 type BaseRelocationEntry struct {
 	Data       BaseRelocationEntryD
 	FileOffset uint32
@@ -773,11 +796,12 @@ func (bre *BaseRelocationEntry) String() string {
 	return sectionString(bre.FileOffset, "BaseRelocationEntry", bre.Data)
 }
 
+// BaseRelocationEntryD raw field data read from the file
 type BaseRelocationEntryD struct {
 	Data uint16
 }
 
-/* TLSDirectory */
+// TLSDirectory wrapper
 type TLSDirectory struct {
 	Data       TLSDirectoryD
 	FileOffset uint32
@@ -797,6 +821,7 @@ func (tlsd *TLSDirectory) String() string {
 	return sectionString(tlsd.FileOffset, "TLSDirectory", tlsd.Data) + flagString(tlsd.Flags)
 }
 
+// TLSDirectoryD raw field data read from the file
 type TLSDirectoryD struct {
 	StartAddressOfRawData uint32
 	EndAddressOfRawData   uint32
@@ -806,7 +831,7 @@ type TLSDirectoryD struct {
 	Characteristics       uint32
 }
 
-/* TLSDirectory64 */
+// TLSDirectory64 wrapper
 type TLSDirectory64 struct {
 	Data       TLSDirectory64D
 	FileOffset uint32
@@ -826,6 +851,7 @@ func (tlsd *TLSDirectory64) String() string {
 	return sectionString(tlsd.FileOffset, "TLSDirectory64", tlsd.Data) + flagString(tlsd.Flags)
 }
 
+// TLSDirectory64D raw field data read from the file
 type TLSDirectory64D struct {
 	StartAddressOfRawData uint64
 	EndAddressOfRawData   uint64
@@ -835,7 +861,7 @@ type TLSDirectory64D struct {
 	Characteristics       uint32
 }
 
-/* LoadConfigDirectory */
+// LoadConfigDirectory wrapper
 type LoadConfigDirectory struct {
 	Data       LoadConfigDirectoryD
 	FileOffset uint32
@@ -855,6 +881,7 @@ func (lcd *LoadConfigDirectory) String() string {
 	return sectionString(lcd.FileOffset, "LoadConfigDirectory", lcd.Data) + flagString(lcd.Flags)
 }
 
+// LoadConfigDirectoryD raw field contents read from the file
 type LoadConfigDirectoryD struct {
 	Size                          uint32
 	TimeDateStamp                 uint32
@@ -883,7 +910,7 @@ type LoadConfigDirectoryD struct {
 	GuardFlags                    uint32
 }
 
-/* LoadConfigDirectory64 */
+// LoadConfigDirectory64 wrapper
 type LoadConfigDirectory64 struct {
 	Data       LoadConfigDirectory64D
 	FileOffset uint32
@@ -903,6 +930,7 @@ func (lcd *LoadConfigDirectory64) String() string {
 	return sectionString(lcd.FileOffset, "LoadConfigDirectory64", lcd.Data) + flagString(lcd.Flags)
 }
 
+// LoadConfigDirectory64D raw field data read from file
 type LoadConfigDirectory64D struct {
 	Size                          uint32
 	TimeDateStamp                 uint32
@@ -931,7 +959,14 @@ type LoadConfigDirectory64D struct {
 	GuardFlags                    uint32
 }
 
-/* BoundImportDescriptor */
+// BoundImportDescriptorD raw field data read from file
+type BoundImportDescriptorD struct {
+	TimeDateStamp               uint32
+	OffsetModuleName            uint16
+	NumberOfModuleForwarderRefs uint16
+}
+
+// BoundImportDescriptor wrapper
 type BoundImportDescriptor struct {
 	Data       BoundImportDescriptorD
 	FileOffset uint32
@@ -949,13 +984,14 @@ func (bid *BoundImportDescriptor) String() string {
 	return sectionString(bid.FileOffset, "BoundImportDescriptor", bid.Data)
 }
 
-type BoundImportDescriptorD struct {
-	TimeDateStamp               uint32
-	OffsetModuleName            uint16
-	NumberOfModuleForwarderRefs uint16
+// BoundForwarderRefD raw field data from file
+type BoundForwarderRefD struct {
+	TimeDateStamp    uint32
+	OffsetModuleName uint16
+	Reserved         uint16
 }
 
-/* BoundForwarderRef */
+// BoundForwarderRef wrapper
 type BoundForwarderRef struct {
 	Data       BoundForwarderRefD
 	FileOffset uint32
@@ -971,12 +1007,6 @@ func newBoundForwarderRef(fileOffset uint32) (header *BoundForwarderRef) {
 
 func (bfr *BoundForwarderRef) String() string {
 	return sectionString(bfr.FileOffset, "BoundForwarderRef", bfr.Data)
-}
-
-type BoundForwarderRefD struct {
-	TimeDateStamp    uint32
-	OffsetModuleName uint16
-	Reserved         uint16
 }
 
 /* Helper functions */

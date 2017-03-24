@@ -16,9 +16,9 @@ import (
 // PEFile is a representation of the PE/COFF file with some helpful abstractions
 type PEFile struct {
 	Filename          string
-	DosHeader         *DosHeader
-	NTHeader          *NTHeader
-	FileHeader        *FileHeader
+	DosHeader         DosHeader
+	NTHeader          NTHeader
+	COFFFileHeader    COFFFileHeader
 	OptionalHeader    *OptionalHeader
 	OptionalHeader64  *OptionalHeader64
 	Sections          []SectionHeader
@@ -85,13 +85,13 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	offset += pe.NTHeader.Size
 
-	pe.FileHeader = newFileHeader(offset)
-	if err = pe.parseHeader(&pe.FileHeader.Data, offset); err != nil {
+	pe.COFFFileHeader = newCOFFFileHeader(offset)
+	if err = pe.parseHeader(&pe.COFFFileHeader.Data, offset); err != nil {
 		return nil, err
 	}
-	SetFlags(pe.FileHeader.Flags, ImageCharacteristics, uint32(pe.FileHeader.Data.Characteristics))
+	SetFlags(pe.COFFFileHeader.Flags, ImageCharacteristics, uint32(pe.COFFFileHeader.Data.Characteristics))
 
-	offset += pe.FileHeader.Size
+	offset += pe.COFFFileHeader.Size
 
 	log.Println("Size of OptionalHeader")
 
@@ -128,7 +128,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	var dataDir map[string]*DataDirectory
 
-	sectionOffset := offset + uint32(pe.FileHeader.Data.SizeOfOptionalHeader)
+	sectionOffset := offset + uint32(pe.COFFFileHeader.Data.SizeOfOptionalHeader)
 
 	if pe.OptionalHeader64 != nil {
 		if pe.OptionalHeader64.Data.NumberOfRvaAndSizes > 0x10 {
@@ -212,7 +212,7 @@ func (bva byVAddr) Less(i, j int) bool {
 
 func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	newOffset = offset
-	for i := uint32(0); i < uint32(pe.FileHeader.Data.NumberOfSections); i++ {
+	for i := uint32(0); i < uint32(pe.COFFFileHeader.Data.NumberOfSections); i++ {
 		section := newSectionHeader(newOffset)
 		if err = pe.parseHeader(&section.Data, newOffset); err != nil {
 			return 0, err

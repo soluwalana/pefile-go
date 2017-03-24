@@ -22,9 +22,9 @@ func main() {
 		return
 	}
 	log.Println(pefile.Filename)
-	log.Println(pefile.DosHeader)
-	log.Println(pefile.NTHeader)
-	log.Println(pefile.FileHeader)
+	log.Println(pefile.DosHeader.String())
+	log.Println(pefile.NTHeader.String())
+	log.Println(pefile.COFFFileHeader)
 	log.Println(pefile.OptionalHeader)
 
 	for key, val := range pefile.OptionalHeader.DataDirs {
