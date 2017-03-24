@@ -13,7 +13,7 @@ import (
 	"sort"
 )
 
-/* The representation of the PEFile with some helpful abstractions */
+// PEFile is a representation of the PE/COFF file with some helpful abstractions
 type PEFile struct {
 	Filename          string
 	DosHeader         *DosHeader
@@ -30,6 +30,7 @@ type PEFile struct {
 	headerEnd uint32
 }
 
+// NewPEFile attempt to parse a PE file from a file on disk, using mmap
 func NewPEFile(filename string) (pe *PEFile, err error) {
 	pe = new(PEFile)
 	pe.Filename = filename
@@ -52,11 +53,11 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	}
 
 	if pe.DosHeader.Data.E_magic == IMAGE_DOSZM_SIGNATURE {
-		return nil, errors.New("Probably a ZM Executable (not a PE file).")
+		return nil, errors.New("Probably a ZM Executable (not a PE file)")
 	}
 
 	if pe.DosHeader.Data.E_magic != IMAGE_DOS_SIGNATURE {
-		return nil, errors.New("DOS Header magic not found.")
+		return nil, errors.New("DOS Header magic not found")
 	}
 
 	if pe.DosHeader.Data.E_lfanew > pe.dataLen {
@@ -196,16 +197,17 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	return pe, nil
 }
 
-type ByVAddr []*SectionHeader
+// ByVAddr is a helper for sorting sections by VirtualAddress
+type byVAddr []*SectionHeader
 
-func (pe ByVAddr) Len() int {
-	return len(pe)
+func (bva byVAddr) Len() int {
+	return len(bva)
 }
-func (pe ByVAddr) Swap(i, j int) {
-	pe[i], pe[j] = pe[j], pe[i]
+func (bva byVAddr) Swap(i, j int) {
+	bva[i], bva[j] = bva[j], bva[i]
 }
-func (s ByVAddr) Less(i, j int) bool {
-	return s[i].Data.VirtualAddress < s[j].Data.VirtualAddress
+func (bva byVAddr) Less(i, j int) bool {
+	return bva[i].Data.VirtualAddress < bva[j].Data.VirtualAddress
 }
 
 func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
@@ -230,7 +232,7 @@ func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	// Sort the sections by their VirtualAddress and add a field to each of them
 	// with the VirtualAddress of the next section. This will allow to check
 	// for potentially overlapping sections in badly constructed PEs.
-	sort.Sort(ByVAddr(pe.Sections))
+	sort.Sort(byVAddr(pe.Sections))
 	for idx, section := range pe.Sections {
 		if idx == len(pe.Sections)-1 {
 			section.NextHeaderAddr = 0
@@ -494,7 +496,7 @@ func (pe *PEFile) getStringFromData(offset uint32) []byte {
 		if pe.data[end] == 0 {
 			break
 		}
-		end += 1
+		end++
 	}
 	return pe.data[offset:end]
 }
