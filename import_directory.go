@@ -22,7 +22,7 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 	for {
 
 		fileOffset := pe.getOffsetFromRva(rva)
-		importDesc := NewImportDescriptor(fileOffset)
+		importDesc := newImportDescriptor(fileOffset)
 
 		if (importDesc.Size + rva) > pe.dataLen {
 			return errors.New("Not enough space for importDesc")
@@ -32,10 +32,11 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 			return err
 		}
 
-		log.Printf("0x%x == %s", importDesc.Data.Name, pe.getStringAtRva(importDesc.Data.Name))
-		if EmptyStruct(importDesc.Data) {
+		if emptyStruct(importDesc.Data) {
 			break
 		}
+
+		log.Printf("0x%x == %s", importDesc.Data.Name, pe.getStringAtRva(importDesc.Data.Name))
 
 		rva += importDesc.Size
 
@@ -214,14 +215,14 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]Th
 			return nil, errors.New("data addresses too spread out")
 		}
 
-		thunk := NewThunkData(pe.getOffsetFromRva(rva))
+		thunk := newThunkData(pe.getOffsetFromRva(rva))
 		if err := pe.parseHeader(&thunk.Data, thunk.FileOffset); err != nil {
 			msg := fmt.Sprintf("Error Parsing the import table.\nInvalid data at RVA: 0x%x", rva)
 			log.Println(msg)
 			return nil, errors.New(msg)
 		}
 
-		if EmptyStruct(thunk.Data) {
+		if emptyStruct(thunk.Data) {
 			break
 		}
 

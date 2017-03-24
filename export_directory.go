@@ -16,7 +16,7 @@ instances in the ExportDescriptors PE attribute.
 */
 func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 
-	exportDir := NewExportDirectory(pe.getOffsetFromRva(rva))
+	exportDir := newExportDirectory(pe.getOffsetFromRva(rva))
 	start, _ := pe.getDataBounds(rva, 0)
 	if err = pe.parseHeader(&exportDir.Data, start); err != nil {
 		return err

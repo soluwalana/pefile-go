@@ -47,7 +47,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	pe.dataLen = uint32(len(pe.data))
 
-	pe.DosHeader = NewDosHeader(uint32(0x0))
+	pe.DosHeader = newDosHeader(uint32(0x0))
 	if err = pe.parseHeader(&pe.DosHeader.Data, offset); err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	offset = pe.DosHeader.Data.E_lfanew
 
-	pe.NTHeader = NewNTHeader(offset)
+	pe.NTHeader = newNTHeader(offset)
 	if err = pe.parseHeader(&pe.NTHeader.Data, offset); err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	offset += pe.NTHeader.Size
 
-	pe.FileHeader = NewFileHeader(offset)
+	pe.FileHeader = newFileHeader(offset)
 	if err = pe.parseHeader(&pe.FileHeader.Data, offset); err != nil {
 		return nil, err
 	}
@@ -95,14 +95,14 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	log.Println("Size of OptionalHeader")
 
-	pe.OptionalHeader = NewOptionalHeader(offset)
+	pe.OptionalHeader = newOptionalHeader(offset)
 	if err = pe.parseHeader(&pe.OptionalHeader.Data, offset); err != nil {
 		return nil, err
 	}
 	SetFlags(pe.OptionalHeader.Flags, DllCharacteristics, uint32(pe.OptionalHeader.Data.DllCharacteristics))
 
 	if pe.OptionalHeader.Data.Magic == OPTIONAL_HEADER_MAGIC_PE_PLUS {
-		pe.OptionalHeader64 = NewOptionalHeader64(offset)
+		pe.OptionalHeader64 = newOptionalHeader64(offset)
 		if err = pe.parseHeader(&pe.OptionalHeader64.Data, offset); err != nil {
 			return nil, err
 		}
@@ -153,7 +153,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 			break
 		}
 
-		dirEntry := NewDataDirectory(offset)
+		dirEntry := newDataDirectory(offset)
 		if err = pe.parseHeader(&dirEntry.Data, offset); err != nil {
 			return nil, err
 		}
@@ -213,7 +213,7 @@ func (bva byVAddr) Less(i, j int) bool {
 func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	newOffset = offset
 	for i := uint32(0); i < uint32(pe.FileHeader.Data.NumberOfSections); i++ {
-		section := NewSectionHeader(newOffset)
+		section := newSectionHeader(newOffset)
 		if err = pe.parseHeader(&section.Data, newOffset); err != nil {
 			return 0, err
 		}

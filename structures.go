@@ -15,7 +15,7 @@ type DosHeader struct {
 	Size       uint32
 }
 
-func NewDosHeader(fileOffset uint32) (header *DosHeader) {
+func newDosHeader(fileOffset uint32) (header *DosHeader) {
 	header = new(DosHeader)
 	header.Flags = make(map[string]bool)
 	header.Size = uint32(binary.Size(header.Data))
@@ -58,7 +58,7 @@ type NTHeader struct {
 
 /* NT Header */
 
-func NewNTHeader(fileOffset uint32) (header *NTHeader) {
+func newNTHeader(fileOffset uint32) (header *NTHeader) {
 	header = new(NTHeader)
 	header.Flags = make(map[string]bool)
 	header.Size = uint32(binary.Size(header.Data))
@@ -83,7 +83,7 @@ type FileHeader struct {
 	Size       uint32
 }
 
-func NewFileHeader(fileOffset uint32) (header *FileHeader) {
+func newFileHeader(fileOffset uint32) (header *FileHeader) {
 	header = new(FileHeader)
 	header.Flags = make(map[string]bool)
 	header.Size = uint32(binary.Size(header.Data))
@@ -115,7 +115,7 @@ type OptionalHeader struct {
 	DataDirs   map[string]*DataDirectory
 }
 
-func NewOptionalHeader(fileOffset uint32) (header *OptionalHeader) {
+func newOptionalHeader(fileOffset uint32) (header *OptionalHeader) {
 	header = new(OptionalHeader)
 	header.Flags = make(map[string]bool)
 	header.DataDirs = make(map[string]*DataDirectory)
@@ -169,7 +169,7 @@ type OptionalHeader64 struct {
 	Size       uint32
 }
 
-func NewOptionalHeader64(fileOffset uint32) (header *OptionalHeader64) {
+func newOptionalHeader64(fileOffset uint32) (header *OptionalHeader64) {
 	header = new(OptionalHeader64)
 	header.Flags = make(map[string]bool)
 	header.DataDirs = make(map[string]*DataDirectory)
@@ -229,7 +229,7 @@ type DataDirectoryD struct {
 	Size           uint32
 }
 
-func NewDataDirectory(fileOffset uint32) (header *DataDirectory) {
+func newDataDirectory(fileOffset uint32) (header *DataDirectory) {
 	header = new(DataDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -250,7 +250,7 @@ type SectionHeader struct {
 	NextHeaderAddr uint32
 }
 
-func NewSectionHeader(fileOffset uint32) SectionHeader {
+func newSectionHeader(fileOffset uint32) SectionHeader {
 	var header SectionHeader
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -294,7 +294,7 @@ type ImportDescriptor struct {
 	Size       uint32
 }
 
-func NewImportDescriptor(fileOffset uint32) ImportDescriptor {
+func newImportDescriptor(fileOffset uint32) ImportDescriptor {
 	return ImportDescriptor{
 		Size:       uint32(binary.Size(ImportDescriptorD{})),
 		Flags:      make(map[string]bool),
@@ -354,7 +354,7 @@ type DelayImportDescriptor struct {
 	Size       uint32
 }
 
-func NewDelayImportDescriptor(fileOffset uint32) (header *DelayImportDescriptor) {
+func newDelayImportDescriptor(fileOffset uint32) (header *DelayImportDescriptor) {
 	header = new(DelayImportDescriptor)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -386,7 +386,7 @@ type ExportDirectory struct {
 	Size       uint32
 }
 
-func NewExportDirectory(fileOffset uint32) (header *ExportDirectory) {
+func newExportDirectory(fileOffset uint32) (header *ExportDirectory) {
 	header = new(ExportDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -435,7 +435,7 @@ type ResourceDirectory struct {
 	Size       uint32
 }
 
-func NewResourceDirectory(fileOffset uint32) (header *ResourceDirectory) {
+func newResourceDirectory(fileOffset uint32) (header *ResourceDirectory) {
 	header = new(ResourceDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -463,7 +463,7 @@ type ResourceDirectoryEntry struct {
 	Size       uint32
 }
 
-func NewResourceDirectoryEntry(fileOffset uint32) (header *ResourceDirectoryEntry) {
+func newResourceDirectoryEntry(fileOffset uint32) (header *ResourceDirectoryEntry) {
 	header = new(ResourceDirectoryEntry)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -486,7 +486,7 @@ type ResourceDataEntry struct {
 	Size       uint32
 }
 
-func NewResourceDataEntry(fileOffset uint32) (header *ResourceDataEntry) {
+func newResourceDataEntry(fileOffset uint32) (header *ResourceDataEntry) {
 	header = new(ResourceDataEntry)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -511,7 +511,7 @@ type VSVersionInfo struct {
 	Size       uint32
 }
 
-func NewVSVersionInfo(fileOffset uint32) (header *VSVersionInfo) {
+func newVSVersionInfo(fileOffset uint32) (header *VSVersionInfo) {
 	header = new(VSVersionInfo)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -535,7 +535,7 @@ type VSFixedFileInfo struct {
 	Size       uint32
 }
 
-func NewVSFixedFileInfo(fileOffset uint32) (header *VSFixedFileInfo) {
+func newVSFixedFileInfo(fileOffset uint32) (header *VSFixedFileInfo) {
 	header = new(VSFixedFileInfo)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -569,7 +569,7 @@ type StringFileInfo struct {
 	Size       uint32
 }
 
-func NewStringFileInfo(fileOffset uint32) (header *StringFileInfo) {
+func newStringFileInfo(fileOffset uint32) (header *StringFileInfo) {
 	header = new(StringFileInfo)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -593,7 +593,7 @@ type StringTable struct {
 	Size       uint32
 }
 
-func NewStringTable(fileOffset uint32) (header *StringTable) {
+func newStringTable(fileOffset uint32) (header *StringTable) {
 	header = new(StringTable)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -617,7 +617,7 @@ type String struct {
 	Size       uint32
 }
 
-func NewString(fileOffset uint32) (header *String) {
+func newString(fileOffset uint32) (header *String) {
 	header = new(String)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -641,7 +641,7 @@ type Var struct {
 	Size       uint32
 }
 
-func NewVar(fileOffset uint32) (header *Var) {
+func newVar(fileOffset uint32) (header *Var) {
 	header = new(Var)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -665,7 +665,7 @@ type ThunkData struct {
 	Size       uint32
 }
 
-func NewThunkData(fileOffset uint32) (header ThunkData) {
+func newThunkData(fileOffset uint32) (header ThunkData) {
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
 	return
@@ -686,7 +686,7 @@ type ThunkData64 struct {
 	Size       uint32
 }
 
-func NewThunkData64(fileOffset uint32) (header *ThunkData64) {
+func newThunkData64(fileOffset uint32) (header *ThunkData64) {
 	header = new(ThunkData64)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -709,7 +709,7 @@ type DebugDirectory struct {
 	Size       uint32
 }
 
-func NewDebugDirectory(fileOffset uint32) (header *DebugDirectory) {
+func newDebugDirectory(fileOffset uint32) (header *DebugDirectory) {
 	header = new(DebugDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -739,7 +739,7 @@ type BaseRelocation struct {
 	Size       uint32
 }
 
-func NewBaseRelocation(fileOffset uint32) (header *BaseRelocation) {
+func newBaseRelocation(fileOffset uint32) (header *BaseRelocation) {
 	header = new(BaseRelocation)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -762,7 +762,7 @@ type BaseRelocationEntry struct {
 	Size       uint32
 }
 
-func NewBaseRelocationEntry(fileOffset uint32) (header *BaseRelocationEntry) {
+func newBaseRelocationEntry(fileOffset uint32) (header *BaseRelocationEntry) {
 	header = new(BaseRelocationEntry)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -785,7 +785,7 @@ type TLSDirectory struct {
 	Size       uint32
 }
 
-func NewTLSDirectory(fileOffset uint32) (header *TLSDirectory) {
+func newTLSDirectory(fileOffset uint32) (header *TLSDirectory) {
 	header = new(TLSDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -814,7 +814,7 @@ type TLSDirectory64 struct {
 	Size       uint32
 }
 
-func NewTLSDirectory64(fileOffset uint32) (header *TLSDirectory64) {
+func newTLSDirectory64(fileOffset uint32) (header *TLSDirectory64) {
 	header = new(TLSDirectory64)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -843,7 +843,7 @@ type LoadConfigDirectory struct {
 	Size       uint32
 }
 
-func NewLoadConfigDirectory(fileOffset uint32) (header *LoadConfigDirectory) {
+func newLoadConfigDirectory(fileOffset uint32) (header *LoadConfigDirectory) {
 	header = new(LoadConfigDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -891,7 +891,7 @@ type LoadConfigDirectory64 struct {
 	Size       uint32
 }
 
-func NewLoadConfigDirectory64(fileOffset uint32) (header *LoadConfigDirectory64) {
+func newLoadConfigDirectory64(fileOffset uint32) (header *LoadConfigDirectory64) {
 	header = new(LoadConfigDirectory64)
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
@@ -938,7 +938,7 @@ type BoundImportDescriptor struct {
 	Size       uint32
 }
 
-func NewBoundImportDescriptor(fileOffset uint32) (header *BoundImportDescriptor) {
+func newBoundImportDescriptor(fileOffset uint32) (header *BoundImportDescriptor) {
 	header = new(BoundImportDescriptor)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -962,7 +962,7 @@ type BoundForwarderRef struct {
 	Size       uint32
 }
 
-func NewBoundForwarderRef(fileOffset uint32) (header *BoundForwarderRef) {
+func newBoundForwarderRef(fileOffset uint32) (header *BoundForwarderRef) {
 	header = new(BoundForwarderRef)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
@@ -1027,7 +1027,9 @@ func flagString(flagMap map[string]bool) string {
 	return values
 }
 
-func EmptyStruct(iface interface{}) bool {
+// FIXME: this is really just checking for zero-values, could just be
+// replaced with == thing{}?
+func emptyStruct(iface interface{}) bool {
 	value := reflect.ValueOf(iface)
 	for i := 0; i < value.NumField(); i++ {
 		field := value.Field(i)
@@ -1054,7 +1056,12 @@ func EmptyStruct(iface interface{}) bool {
 	return true
 }
 
-/* Call this function after the data has been parsed */
+// SetFlags takes the binary flag value read from the guest, checks it against
+// all the key-values in charMap, and sets the corresponding values in the
+// passed in flagMap
+//
+// Should be called after reading raw header data out of the file to fill in
+// convience structs
 func SetFlags(flagMap map[string]bool, charMap map[string]uint32, characteristic uint32) {
 	for key, value := range charMap {
 		if characteristic&value != 0x0 {
