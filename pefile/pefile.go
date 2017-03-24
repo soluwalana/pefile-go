@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/dgrif/pefile-go/pe"
+	"fmt"
 	"log"
 	"os"
+
+	"github.com/awsaba/pefile-go"
 )
 
 func main() {
@@ -13,7 +15,7 @@ func main() {
 		log.Println("Must specify the filename of the PEFile")
 		return
 	}
-	pefile, err := pe.NewPEFile(args[0])
+	pefile, err := pefile.NewPEFile(args[0])
 	if err != nil {
 		log.Println("Ooopss looks like there was a problem")
 		log.Println(err)
@@ -44,7 +46,7 @@ func main() {
 		for _, imp := range entry.Imports {
 			var funcname string
 			if len(imp.Name) == 0 {
-				funcname = pe.OrdLookup(string(entry.Dll), uint64(imp.Ordinal), true)
+				funcname = fmt.Sprintf("ordinal+%d", imp.Ordinal)
 			} else {
 				funcname = string(imp.Name)
 			}

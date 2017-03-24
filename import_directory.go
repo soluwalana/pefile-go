@@ -1,11 +1,10 @@
 /* This File will have the logic for parsing 32bit and 64bit Import Directories and Descriptors */
 
-package pe
+package pefile
 
 import (
 	"errors"
 	"fmt"
-	"github.com/dgrif/pefile-go/lib"
 	"log"
 	"reflect"
 )
@@ -18,61 +17,59 @@ its entries.
 The exports will be made available as a list of ImportData
 instances in the ImportDescriptors PE attribute.
 */
-func (self *PEFile) parseImportDirectory(rva, size uint32) (err error) {
-	self.ImportDescriptors = make([]*lib.ImportDescriptor, 0)
+func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
+	pe.ImportDescriptors = make([]*ImportDescriptor, 0)
 
 	for {
 
-		fileOffset := self.getOffsetFromRva(rva)
-		importDesc := lib.NewImportDescriptor(fileOffset)
+		fileOffset := pe.getOffsetFromRva(rva)
+		importDesc := NewImportDescriptor(fileOffset)
 
-		if (importDesc.Size + rva) > self.dataLen {
+		if (importDesc.Size + rva) > pe.dataLen {
 			return errors.New("Not enough space for importDesc")
 		}
 
-		if err = self.parseHeader(&importDesc.Data, fileOffset, importDesc.Size); err != nil {
+		if err = pe.parseHeader(&importDesc.Data, fileOffset, importDesc.Size); err != nil {
 			return err
 		}
 
-		log.Printf("0x%x == %s", importDesc.Data.Name, self.getStringAtRva(importDesc.Data.Name))
-		if lib.EmptyStruct(importDesc.Data) {
+		log.Printf("0x%x == %s", importDesc.Data.Name, pe.getStringAtRva(importDesc.Data.Name))
+		if EmptyStruct(importDesc.Data) {
 			break
 		}
 
 		rva += importDesc.Size
 
-		importDesc.Dll = self.getStringAtRva(importDesc.Data.Name)
+		importDesc.Dll = pe.getStringAtRva(importDesc.Data.Name)
 		if !validDosFilename(importDesc.Dll) {
 			importDesc.Dll = INVALID_IMP_NAME
 		}
 
-		if self.OptionalHeader64 != nil {
-			if err := self.parseImports64(importDesc); err != nil {
+		if pe.OptionalHeader64 != nil {
+			if err := pe.parseImports64(importDesc); err != nil {
 				return err
 			}
-			// Give pretty names to well known dll files
+
 			for _, imp := range importDesc.Imports64 {
 				if imp.ImportByOrdinal {
-					if funcname := OrdLookup(string(importDesc.Dll), imp.Ordinal, false); len(funcname) > 0 {
-						imp.Name = []byte(funcname)
-					}
+					// TODO: the fixed ord lookup names were specific to a single
+					// version of those files
 				}
 			}
 		} else {
-			if err := self.parseImports(importDesc); err != nil {
+			if err := pe.parseImports(importDesc); err != nil {
 				return err
 			}
 			// Give pretty names to well known dll files
 			for _, imp := range importDesc.Imports {
 				if imp.ImportByOrdinal {
-					if funcname := OrdLookup(string(importDesc.Dll), uint64(imp.Ordinal), false); len(funcname) > 0 {
-						imp.Name = []byte(funcname)
-					}
+					// TODO: the fixed ord lookup names were specific to a single
+					// version of those files
 				}
 			}
 		}
 
-		self.ImportDescriptors = append(self.ImportDescriptors, importDesc)
+		pe.ImportDescriptors = append(pe.ImportDescriptors, importDesc)
 	}
 	return nil
 }
@@ -84,13 +81,13 @@ func (self *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 	attribute "imports". Its keys will be the DLL names and the values
 	all the symbols imported from that object.
 */
-func (self *PEFile) parseImports(importDesc *lib.ImportDescriptor) (err error) {
-	var table []*lib.ThunkData
-	ilt, err := self.getImportTable(importDesc.Data.Characteristics, importDesc)
+func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
+	var table []*ThunkData
+	ilt, err := pe.getImportTable(importDesc.Data.Characteristics, importDesc)
 	if err != nil {
 		return err
 	}
-	iat, err := self.getImportTable(importDesc.Data.FirstThunk, importDesc)
+	iat, err := pe.getImportTable(importDesc.Data.FirstThunk, importDesc)
 	if err != nil {
 		return err
 	}
@@ -112,7 +109,7 @@ func (self *PEFile) parseImports(importDesc *lib.ImportDescriptor) (err error) {
 	}
 
 	for idx := uint32(0); idx < uint32(len(table)); idx++ {
-		imp := new(lib.ImportData)
+		imp := new(ImportData)
 		imp.StructTable = table[idx]
 		imp.OrdinalOffset = table[idx].FileOffset
 
@@ -126,22 +123,22 @@ func (self *PEFile) parseImports(importDesc *lib.ImportDescriptor) (err error) {
 				imp.ImportByOrdinal = false
 				imp.HintNameTableRva = table[idx].Data.AddressOfData & addressMask
 
-				if err := self.parseHeader(&imp.Hint, imp.HintNameTableRva, 2); err != nil {
+				if err := pe.parseHeader(&imp.Hint, imp.HintNameTableRva, 2); err != nil {
 					return err
 				}
 
-				imp.Name = self.getStringAtRva(table[idx].Data.AddressOfData + 2)
+				imp.Name = pe.getStringAtRva(table[idx].Data.AddressOfData + 2)
 
 				if !validFuncName(imp.Name) {
 					imp.Name = INVALID_IMP_NAME
 				}
-				imp.NameOffset = self.getOffsetFromRva(table[idx].Data.AddressOfData + 2)
+				imp.NameOffset = pe.getOffsetFromRva(table[idx].Data.AddressOfData + 2)
 			}
 			imp.ThunkOffset = table[idx].FileOffset
-			imp.ThunkRva = self.getRvaFromOffset(imp.ThunkOffset)
+			imp.ThunkRva = pe.getRvaFromOffset(imp.ThunkOffset)
 		}
 
-		imp.Address = importDesc.Data.FirstThunk + self.OptionalHeader.Data.ImageBase + (idx * impOffset)
+		imp.Address = importDesc.Data.FirstThunk + pe.OptionalHeader.Data.ImageBase + (idx * impOffset)
 
 		if len(iat) > 0 && len(ilt) > 0 && ilt[idx].Data.AddressOfData != iat[idx].Data.AddressOfData {
 			imp.Bound = iat[idx].Data.AddressOfData
@@ -176,10 +173,10 @@ func (self *PEFile) parseImports(importDesc *lib.ImportDescriptor) (err error) {
 	return nil
 }
 
-func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor) ([]*lib.ThunkData, error) {
+func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]*ThunkData, error) {
 	// Setup variables
-	thunkTable := make(map[uint32]*lib.ThunkData)
-	retVal := make([]*lib.ThunkData, 0)
+	thunkTable := make(map[uint32]*ThunkData)
+	retVal := make([]*ThunkData, 0)
 
 	MAX_ADDRESS_SPREAD := uint32(134217728) // 128 MB
 	MAX_REPEATED_ADDRESSES := uint32(16)
@@ -191,7 +188,7 @@ func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor)
 	minAddressOfData := ^uint32(0)
 	maxAddressOfData := uint32(0)
 
-	maxLen := self.dataLen - importDesc.FileOffset
+	maxLen := pe.dataLen - importDesc.FileOffset
 	if rva > importDesc.Data.Characteristics || rva > importDesc.Data.FirstThunk {
 		maxLen = Max(rva-importDesc.Data.Characteristics, rva-importDesc.Data.FirstThunk)
 	}
@@ -206,24 +203,24 @@ func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor)
 		// if we see too many times the same entry we assume it could be
 		// a table containing bogus data (with malicious intent or otherwise)
 		if repeatedAddresses >= MAX_REPEATED_ADDRESSES {
-			return []*lib.ThunkData{}, errors.New("bogus data found in imports")
+			return []*ThunkData{}, errors.New("bogus data found in imports")
 		}
 
 		// if the addresses point somewhere but the difference between the highest
 		// and lowest address is larger than MAX_ADDRESS_SPREAD we assume a bogus
 		// table as the addresses should be contained within a module
 		if maxAddressOfData-minAddressOfData > MAX_ADDRESS_SPREAD {
-			return []*lib.ThunkData{}, errors.New("data addresses too spread out")
+			return []*ThunkData{}, errors.New("data addresses too spread out")
 		}
 
-		thunk := lib.NewThunkData(self.getOffsetFromRva(rva))
-		if err := self.parseHeader(&thunk.Data, thunk.FileOffset, thunk.Size); err != nil {
+		thunk := NewThunkData(pe.getOffsetFromRva(rva))
+		if err := pe.parseHeader(&thunk.Data, thunk.FileOffset, thunk.Size); err != nil {
 			msg := fmt.Sprintf("Error Parsing the import table.\nInvalid data at RVA: 0x%x", rva)
 			log.Println(msg)
-			return []*lib.ThunkData{}, errors.New(msg)
+			return []*ThunkData{}, errors.New(msg)
 		}
 
-		if lib.EmptyStruct(thunk.Data) {
+		if EmptyStruct(thunk.Data) {
 			break
 		}
 
@@ -247,7 +244,7 @@ func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor)
 				if thunk.Data.AddressOfData&uint32(0x7fffffff) > uint32(0xffff) {
 					msg := fmt.Sprintf("Corruption detected in thunk data at 0x%x", rva)
 					log.Printf(msg)
-					return []*lib.ThunkData{}, errors.New(msg)
+					return []*ThunkData{}, errors.New(msg)
 				}
 				// and if it looks like it should be an RVA
 			} else {
@@ -273,12 +270,12 @@ func (self *PEFile) getImportTable(rva uint32, importDesc *lib.ImportDescriptor)
 	return retVal, nil
 }
 
-func (self *PEFile) parseImports64(importDesc *lib.ImportDescriptor) (err error) {
+func (pe *PEFile) parseImports64(importDesc *ImportDescriptor) (err error) {
 	// Todo not implemented yet
 	return nil
 }
 
-func (self *PEFile) getImportTable64(rva uint64) []*lib.ThunkData64 {
+func (pe *PEFile) getImportTable64(rva uint64) []*ThunkData64 {
 	// todo not implemeted yet
-	return []*lib.ThunkData64{}
+	return []*ThunkData64{}
 }

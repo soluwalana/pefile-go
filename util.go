@@ -1,4 +1,4 @@
-package pe 
+package pefile
 
 import (
 	"regexp"
