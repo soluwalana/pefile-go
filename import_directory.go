@@ -82,7 +82,7 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 	all the symbols imported from that object.
 */
 func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
-	var table []*ThunkData
+	var table []ThunkData
 	ilt, err := pe.getImportTable(importDesc.Data.Characteristics, importDesc)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 	}
 
 	for idx := uint32(0); idx < uint32(len(table)); idx++ {
-		imp := new(ImportData)
+		var imp ImportData
 		imp.StructTable = table[idx]
 		imp.OrdinalOffset = table[idx].FileOffset
 
@@ -161,7 +161,7 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 			if numInvalid > 1000 && numInvalid == idx {
 				return errors.New("Too many invalid names, aborting parsing")
 			}
-			numInvalid += 1
+			numInvalid++
 			continue
 		}
 
@@ -173,13 +173,15 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 	return nil
 }
 
-func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]*ThunkData, error) {
-	// Setup variables
-	thunkTable := make(map[uint32]*ThunkData)
-	retVal := make([]*ThunkData, 0)
+const (
+	maxAddressSpread     = uint32(134217728) // 128 MB
+	maxRepeatedAddresses = uint32(16)
+)
 
-	MAX_ADDRESS_SPREAD := uint32(134217728) // 128 MB
-	MAX_REPEATED_ADDRESSES := uint32(16)
+func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]ThunkData, error) {
+	// Setup variables
+	thunkTable := make(map[uint32]ThunkData)
+	var retVal []ThunkData
 
 	ordinalFlag := IMAGE_ORDINAL_FLAG
 	repeatedAddresses := uint32(0)
@@ -202,22 +204,22 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]*T
 		}
 		// if we see too many times the same entry we assume it could be
 		// a table containing bogus data (with malicious intent or otherwise)
-		if repeatedAddresses >= MAX_REPEATED_ADDRESSES {
-			return []*ThunkData{}, errors.New("bogus data found in imports")
+		if repeatedAddresses >= maxRepeatedAddresses {
+			return nil, errors.New("bogus data found in imports")
 		}
 
 		// if the addresses point somewhere but the difference between the highest
 		// and lowest address is larger than MAX_ADDRESS_SPREAD we assume a bogus
 		// table as the addresses should be contained within a module
-		if maxAddressOfData-minAddressOfData > MAX_ADDRESS_SPREAD {
-			return []*ThunkData{}, errors.New("data addresses too spread out")
+		if maxAddressOfData-minAddressOfData > maxAddressSpread {
+			return nil, errors.New("data addresses too spread out")
 		}
 
 		thunk := NewThunkData(pe.getOffsetFromRva(rva))
 		if err := pe.parseHeader(&thunk.Data, thunk.FileOffset, thunk.Size); err != nil {
 			msg := fmt.Sprintf("Error Parsing the import table.\nInvalid data at RVA: 0x%x", rva)
 			log.Println(msg)
-			return []*ThunkData{}, errors.New(msg)
+			return nil, errors.New(msg)
 		}
 
 		if EmptyStruct(thunk.Data) {
@@ -244,7 +246,7 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]*T
 				if thunk.Data.AddressOfData&uint32(0x7fffffff) > uint32(0xffff) {
 					msg := fmt.Sprintf("Corruption detected in thunk data at 0x%x", rva)
 					log.Printf(msg)
-					return []*ThunkData{}, errors.New(msg)
+					return nil, errors.New(msg)
 				}
 				// and if it looks like it should be an RVA
 			} else {
@@ -252,7 +254,7 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]*T
 				// properties. When certain non-standard features are detected
 				// the parsing will be aborted
 				if _, ok := thunkTable[rva]; ok {
-					repeatedAddresses += 1
+					repeatedAddresses++
 				}
 				if thunk.Data.AddressOfData > maxAddressOfData {
 					maxAddressOfData = thunk.Data.AddressOfData

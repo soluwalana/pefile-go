@@ -281,8 +281,8 @@ type ImportDescriptor struct {
 	FileOffset uint32
 	Flags      map[string]bool
 	Dll        []byte
-	Imports    []*ImportData
-	Imports64  []*ImportData64
+	Imports    []ImportData
+	Imports64  []ImportData64
 	Size       uint32
 }
 
@@ -307,8 +307,8 @@ type ImportDescriptorD struct {
 }
 
 type ImportData struct {
-	StructTable      *ThunkData
-	StructIat        *ThunkData
+	StructTable      ThunkData
+	StructIat        ThunkData
 	ImportByOrdinal  bool
 	Ordinal          uint32
 	OrdinalOffset    uint32
@@ -665,11 +665,10 @@ type ThunkData struct {
 	Size       uint32
 }
 
-func NewThunkData(fileOffset uint32) (header *ThunkData) {
-	header = new(ThunkData)
+func NewThunkData(fileOffset uint32) (header ThunkData) {
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
-	return header
+	return
 }
 
 func (t *ThunkData) String() string {
