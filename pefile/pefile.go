@@ -32,7 +32,9 @@ func main() {
 		log.Println(val)
 	}
 
-	log.Println(pefile.Sections)
+	for _, s := range pefile.Sections {
+		log.Println(s.String())
+	}
 
 	/*for _, val := range pefile.ImportDescriptors {
 		log.Println(val)

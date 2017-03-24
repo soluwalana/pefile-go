@@ -250,8 +250,8 @@ type SectionHeader struct {
 	NextHeaderAddr uint32
 }
 
-func NewSectionHeader(fileOffset uint32) (header *SectionHeader) {
-	header = new(SectionHeader)
+func NewSectionHeader(fileOffset uint32) SectionHeader {
+	var header SectionHeader
 	header.Size = uint32(binary.Size(header.Data))
 	header.Flags = make(map[string]bool)
 	header.FileOffset = fileOffset
@@ -275,6 +275,14 @@ type SectionHeaderD struct {
 	Characteristics      uint32
 }
 
+type ImportDescriptorD struct {
+	Characteristics uint32
+	TimeDateStamp   uint32
+	ForwarderChain  uint32
+	Name            uint32
+	FirstThunk      uint32
+}
+
 /* Image Import Descriptor */
 type ImportDescriptor struct {
 	Data       ImportDescriptorD
@@ -286,24 +294,16 @@ type ImportDescriptor struct {
 	Size       uint32
 }
 
-func NewImportDescriptor(fileOffset uint32) (header *ImportDescriptor) {
-	header = new(ImportDescriptor)
-	header.Size = uint32(binary.Size(header.Data))
-	header.Flags = make(map[string]bool)
-	header.FileOffset = fileOffset
-	return header
+func NewImportDescriptor(fileOffset uint32) ImportDescriptor {
+	return ImportDescriptor{
+		Size:       uint32(binary.Size(ImportDescriptorD{})),
+		Flags:      make(map[string]bool),
+		FileOffset: fileOffset,
+	}
 }
 
 func (id *ImportDescriptor) String() string {
 	return sectionString(id.FileOffset, "IMPORT_DESCRIPTOR", id.Data) + flagString(id.Flags)
-}
-
-type ImportDescriptorD struct {
-	Characteristics uint32
-	TimeDateStamp   uint32
-	ForwarderChain  uint32
-	Name            uint32
-	FirstThunk      uint32
 }
 
 type ImportData struct {
@@ -658,7 +658,7 @@ type VarD struct {
 	Type        uint16
 }
 
-/* ThunkData */
+// ThunkData
 type ThunkData struct {
 	Data       ThunkDataD
 	FileOffset uint32

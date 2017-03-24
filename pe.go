@@ -21,8 +21,8 @@ type PEFile struct {
 	FileHeader        *FileHeader
 	OptionalHeader    *OptionalHeader
 	OptionalHeader64  *OptionalHeader64
-	Sections          []*SectionHeader
-	ImportDescriptors []*ImportDescriptor
+	Sections          []SectionHeader
+	ImportDescriptors []ImportDescriptor
 	ExportDirectory   *ExportDirectory
 	// Private Fields
 	data      mmap.MMap
@@ -48,7 +48,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	pe.dataLen = uint32(len(pe.data))
 
 	pe.DosHeader = NewDosHeader(uint32(0x0))
-	if err = pe.parseHeader(&pe.DosHeader.Data, offset, pe.DosHeader.Size); err != nil {
+	if err = pe.parseHeader(&pe.DosHeader.Data, offset); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +67,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	offset = pe.DosHeader.Data.E_lfanew
 
 	pe.NTHeader = NewNTHeader(offset)
-	if err = pe.parseHeader(&pe.NTHeader.Data, offset, pe.NTHeader.Size); err != nil {
+	if err = pe.parseHeader(&pe.NTHeader.Data, offset); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	offset += pe.NTHeader.Size
 
 	pe.FileHeader = NewFileHeader(offset)
-	if err = pe.parseHeader(&pe.FileHeader.Data, offset, pe.FileHeader.Size); err != nil {
+	if err = pe.parseHeader(&pe.FileHeader.Data, offset); err != nil {
 		return nil, err
 	}
 	SetFlags(pe.FileHeader.Flags, ImageCharacteristics, uint32(pe.FileHeader.Data.Characteristics))
@@ -96,14 +96,14 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	log.Println("Size of OptionalHeader")
 
 	pe.OptionalHeader = NewOptionalHeader(offset)
-	if err = pe.parseHeader(&pe.OptionalHeader.Data, offset, pe.OptionalHeader.Size); err != nil {
+	if err = pe.parseHeader(&pe.OptionalHeader.Data, offset); err != nil {
 		return nil, err
 	}
 	SetFlags(pe.OptionalHeader.Flags, DllCharacteristics, uint32(pe.OptionalHeader.Data.DllCharacteristics))
 
 	if pe.OptionalHeader.Data.Magic == OPTIONAL_HEADER_MAGIC_PE_PLUS {
 		pe.OptionalHeader64 = NewOptionalHeader64(offset)
-		if err = pe.parseHeader(&pe.OptionalHeader64.Data, offset, pe.OptionalHeader64.Size); err != nil {
+		if err = pe.parseHeader(&pe.OptionalHeader64.Data, offset); err != nil {
 			return nil, err
 		}
 
@@ -154,7 +154,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 		}
 
 		dirEntry := NewDataDirectory(offset)
-		if err = pe.parseHeader(&dirEntry.Data, offset, dirEntry.Size); err != nil {
+		if err = pe.parseHeader(&dirEntry.Data, offset); err != nil {
 			return nil, err
 		}
 		offset += dirEntry.Size
@@ -198,7 +198,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 }
 
 // ByVAddr is a helper for sorting sections by VirtualAddress
-type byVAddr []*SectionHeader
+type byVAddr []SectionHeader
 
 func (bva byVAddr) Len() int {
 	return len(bva)
@@ -214,7 +214,7 @@ func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	newOffset = offset
 	for i := uint32(0); i < uint32(pe.FileHeader.Data.NumberOfSections); i++ {
 		section := NewSectionHeader(newOffset)
-		if err = pe.parseHeader(&section.Data, newOffset, section.Size); err != nil {
+		if err = pe.parseHeader(&section.Data, newOffset); err != nil {
 			return 0, err
 		}
 
@@ -244,7 +244,11 @@ func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	return newOffset, nil
 }
 
-func (pe *PEFile) parseHeader(iface interface{}, offset, size uint32) (err error) {
+func (pe *PEFile) parseHeader(iface interface{}, offset uint32) (err error) {
+	size := uint32(binary.Size(iface))
+	if offset+size > uint32(len(pe.data)) {
+		return errors.New("requested header read past end of the file")
+	}
 	buf := bytes.NewReader(pe.data[offset : offset+size])
 	err = binary.Read(buf, binary.LittleEndian, iface)
 	if err != nil {
@@ -307,7 +311,7 @@ func (pe *PEFile) getSectionByRva(rva uint32) *SectionHeader {
 		}
 
 		if vaddr <= rva && rva < (vaddr+size) {
-			return section
+			return &section
 		}
 	}
 	return nil
@@ -321,7 +325,7 @@ func (pe *PEFile) getSectionByOffset(offset uint32) *SectionHeader {
 
 		adjustedPointer := pe.adjustFileAlignment(section.Data.PointerToRawData)
 		if adjustedPointer <= offset && offset < (adjustedPointer+section.Data.SizeOfRawData) {
-			return section
+			return &section
 		}
 	}
 	return nil

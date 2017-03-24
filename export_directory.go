@@ -18,7 +18,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 
 	exportDir := NewExportDirectory(pe.getOffsetFromRva(rva))
 	start, _ := pe.getDataBounds(rva, 0)
-	if err = pe.parseHeader(&exportDir.Data, start, exportDir.Size); err != nil {
+	if err = pe.parseHeader(&exportDir.Data, start); err != nil {
 		return err
 	}
 	pe.ExportDirectory = exportDir
@@ -51,7 +51,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		// Name and name offset
 		var symNameAddr uint32
 		sym.NameOffset = startAddrOfNames + (i * 4)
-		if err = pe.parseHeader(&symNameAddr, sym.NameOffset, 4); err != nil {
+		if err = pe.parseHeader(&symNameAddr, sym.NameOffset); err != nil {
 			return err
 		}
 		sym.Name = pe.getStringAtRva(symNameAddr)
@@ -63,13 +63,13 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 
 		// Ordinal
 		sym.OrdinalOffset = startAddrOfOrdinals + (i * 2)
-		if err = pe.parseHeader(&sym.Ordinal, sym.OrdinalOffset, 2); err != nil {
+		if err = pe.parseHeader(&sym.Ordinal, sym.OrdinalOffset); err != nil {
 			return err
 		}
 
 		// Address
 		sym.AddressOffset = startAddrOfFuncs + (uint32(sym.Ordinal) * 4)
-		if err = pe.parseHeader(&sym.Address, sym.AddressOffset, 4); err != nil {
+		if err = pe.parseHeader(&sym.Address, sym.AddressOffset); err != nil {
 			return err
 		}
 		if sym.Address == 0 {
@@ -107,7 +107,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 
 		// Address
 		sym.AddressOffset = startAddrOfFuncs + (uint32(sym.Ordinal) * 4)
-		if err = pe.parseHeader(&sym.Address, sym.AddressOffset, 4); err != nil {
+		if err = pe.parseHeader(&sym.Address, sym.AddressOffset); err != nil {
 			return err
 		}
 		if sym.Address == 0 {

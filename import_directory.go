@@ -18,7 +18,6 @@ The exports will be made available as a list of ImportData
 instances in the ImportDescriptors PE attribute.
 */
 func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
-	pe.ImportDescriptors = make([]*ImportDescriptor, 0)
 
 	for {
 
@@ -29,7 +28,7 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 			return errors.New("Not enough space for importDesc")
 		}
 
-		if err = pe.parseHeader(&importDesc.Data, fileOffset, importDesc.Size); err != nil {
+		if err = pe.parseHeader(&importDesc.Data, fileOffset); err != nil {
 			return err
 		}
 
@@ -46,7 +45,7 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 		}
 
 		if pe.OptionalHeader64 != nil {
-			if err := pe.parseImports64(importDesc); err != nil {
+			if err := pe.parseImports64(&importDesc); err != nil {
 				return err
 			}
 
@@ -57,7 +56,7 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 				}
 			}
 		} else {
-			if err := pe.parseImports(importDesc); err != nil {
+			if err := pe.parseImports(&importDesc); err != nil {
 				return err
 			}
 			// Give pretty names to well known dll files
@@ -123,7 +122,7 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 				imp.ImportByOrdinal = false
 				imp.HintNameTableRva = table[idx].Data.AddressOfData & addressMask
 
-				if err := pe.parseHeader(&imp.Hint, imp.HintNameTableRva, 2); err != nil {
+				if err := pe.parseHeader(&imp.Hint, imp.HintNameTableRva); err != nil {
 					return err
 				}
 
@@ -216,7 +215,7 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]Th
 		}
 
 		thunk := NewThunkData(pe.getOffsetFromRva(rva))
-		if err := pe.parseHeader(&thunk.Data, thunk.FileOffset, thunk.Size); err != nil {
+		if err := pe.parseHeader(&thunk.Data, thunk.FileOffset); err != nil {
 			msg := fmt.Sprintf("Error Parsing the import table.\nInvalid data at RVA: 0x%x", rva)
 			log.Println(msg)
 			return nil, errors.New(msg)
