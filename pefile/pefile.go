@@ -13,13 +13,13 @@ func main() {
 	args := os.Args[1:]
 	if len(args) == 0 {
 		log.Println("Must specify the filename of the PEFile")
-		return
+		os.Exit(-1)
 	}
 	pefile, err := pefile.NewPEFile(args[0])
 	if err != nil {
 		log.Println("Ooopss looks like there was a problem")
 		log.Println(err)
-		return
+		os.Exit(2)
 	}
 	log.Println(pefile.Filename)
 	log.Println(pefile.DosHeader.String())
