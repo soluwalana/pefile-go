@@ -44,6 +44,7 @@ func main() {
 
 	fmt.Println("\nDIRECTORY_ENTRY_IMPORT\n")
 	for _, entry := range pefile.ImportDescriptors {
+		fmt.Println(string(entry.Dll))
 		for _, imp := range entry.Imports {
 			var funcname string
 			if len(imp.Name) == 0 {
@@ -51,7 +52,7 @@ func main() {
 			} else {
 				funcname = string(imp.Name)
 			}
-			fmt.Println(funcname)
+			fmt.Println("\t", funcname)
 		}
 	}
 

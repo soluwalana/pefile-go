@@ -43,7 +43,7 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 		if !isValidDosFilename(importDesc.Dll) {
 			importDesc.Dll = invalidImportName
 		}
-		log.Printf("Import descriptor name rva 0x%x: %s", importDesc.Data.Name, importDesc.dll)
+		log.Printf("Import descriptor name rva 0x%x: %s", importDesc.Data.Name, importDesc.Dll)
 
 		if pe.OptionalHeader64 != nil {
 			if err := pe.parseImports64(&importDesc); err != nil {
@@ -123,7 +123,8 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 				imp.ImportByOrdinal = false
 				imp.HintNameTableRva = table[idx].Data.AddressOfData & addressMask
 
-				if err := pe.parseHeader(&imp.Hint, imp.HintNameTableRva); err != nil {
+				fileOffset := pe.getOffsetFromRva(imp.HintNameTableRva)
+				if err := pe.parseHeader(&imp.Hint, fileOffset); err != nil {
 					return err
 				}
 
