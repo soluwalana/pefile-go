@@ -19,12 +19,13 @@ instances in the ImportDescriptors PE attribute.
 */
 func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 
-	for {
+	fileOffset := pe.getOffsetFromRva(rva)
 
-		fileOffset := pe.getOffsetFromRva(rva)
+	for fileOffset < pe.dataLen+size {
+
 		importDesc := newImportDescriptor(fileOffset)
 
-		if (importDesc.Size + rva) > pe.dataLen {
+		if (importDesc.Size + fileOffset) > pe.dataLen {
 			return errors.New("Not enough space for importDesc")
 		}
 
@@ -36,14 +37,13 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 			break
 		}
 
-		log.Printf("0x%x == %s", importDesc.Data.Name, pe.getStringAtRva(importDesc.Data.Name))
-
-		rva += importDesc.Size
+		fileOffset += importDesc.Size
 
 		importDesc.Dll = pe.getStringAtRva(importDesc.Data.Name)
 		if !isValidDosFilename(importDesc.Dll) {
 			importDesc.Dll = invalidImportName
 		}
+		log.Printf("Import descriptor name rva 0x%x: %s", importDesc.Data.Name, importDesc.dll)
 
 		if pe.OptionalHeader64 != nil {
 			if err := pe.parseImports64(&importDesc); err != nil {

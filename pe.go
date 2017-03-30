@@ -7,9 +7,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/edsrzf/mmap-go"
 	"log"
 	"os"
+	"reflect"
 	"sort"
 )
 
@@ -246,8 +248,8 @@ func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 
 func (pe *PEFile) parseHeader(iface interface{}, offset uint32) (err error) {
 	size := uint32(binary.Size(iface))
-	if offset+size > uint32(len(pe.data)) {
-		return errors.New("requested header read past end of the file")
+	if offset+size > pe.dataLen {
+		return fmt.Errorf("requested header %s:%x would read past end of the file, offset 0x%x, data length: 0x%x", reflect.TypeOf(iface), size, offset, len(pe.data))
 	}
 	buf := bytes.NewReader(pe.data[offset : offset+size])
 	err = binary.Read(buf, binary.LittleEndian, iface)
