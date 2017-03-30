@@ -2,48 +2,47 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/awsaba/pefile-go"
 )
 
 func main() {
-	log.Println("hello everyone, lets parse your PEFile")
+	fmt.Println("hello everyone, lets parse your PEFile")
 	args := os.Args[1:]
 	if len(args) == 0 {
-		log.Println("Must specify the filename of the PEFile")
+		fmt.Println("Must specify the filename of the PEFile")
 		os.Exit(-1)
 	}
 	pefile, err := pefile.NewPEFile(args[0])
 	if err != nil {
-		log.Println("Ooopss looks like there was a problem")
-		log.Println(err)
+		fmt.Println("Ooopss looks like there was a problem")
+		fmt.Println(err)
 		os.Exit(2)
 	}
-	log.Println(pefile.Filename)
-	log.Println(pefile.DosHeader.String())
-	log.Println(pefile.NTHeader.String())
-	log.Println(pefile.COFFFileHeader)
-	log.Println(pefile.OptionalHeader)
+	fmt.Println(pefile.Filename)
+	fmt.Println(pefile.DosHeader.String())
+	fmt.Println(pefile.NTHeader.String())
+	fmt.Println(pefile.COFFFileHeader)
+	fmt.Println(pefile.OptionalHeader)
 
 	for key, val := range pefile.OptionalHeader.DataDirs {
-		log.Println(key)
-		log.Println(val)
+		fmt.Println(key)
+		fmt.Println(val)
 	}
 
 	for _, s := range pefile.Sections {
-		log.Println(s.String())
+		fmt.Println(s.String())
 	}
 
 	/*for _, val := range pefile.ImportDescriptors {
-		log.Println(val)
+		fmt.Println(val)
 		for _, val2 := range val.Imports {
-			log.Println(val2)
+			fmt.Println(val2)
 		}
 	}*/
 
-	log.Println("\nDIRECTORY_ENTRY_IMPORT\n")
+	fmt.Println("\nDIRECTORY_ENTRY_IMPORT\n")
 	for _, entry := range pefile.ImportDescriptors {
 		for _, imp := range entry.Imports {
 			var funcname string
@@ -52,14 +51,16 @@ func main() {
 			} else {
 				funcname = string(imp.Name)
 			}
-			log.Println(funcname)
+			fmt.Println(funcname)
 		}
 	}
 
-	log.Println("\nDIRECTORY_ENTRY_EXPORT\n")
-	log.Println(pefile.ExportDirectory)
-	for _, entry := range pefile.ExportDirectory.Exports {
-		log.Println(string(entry.Name))
+	if pefile.ExportDirectory != nil {
+		fmt.Println("\nDIRECTORY_ENTRY_EXPORT\n")
+		fmt.Println(pefile.ExportDirectory)
+		for _, entry := range pefile.ExportDirectory.Exports {
+			fmt.Println(string(entry.Name))
+		}
 	}
 
 }
