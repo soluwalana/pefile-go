@@ -416,20 +416,19 @@ func (pe *PEFile) adjustSectionAlignment(pointer uint32) uint32 {
 	return pointer
 }
 
-func (pe *PEFile) getDataBounds(rva, length uint32) (start, size uint32) {
-	var end uint32
-	var offset uint32
-
+// getDataBounds returns a start file offset and a max length:
+// * if rva is in a valid section, from the file offset of the rva to end of
+//   of the section, or less if length is non-zero
+func (pe *PEFile) getDataBounds(rva, length uint32) (start, end uint32, err error) {
 	section := pe.getSectionByRva(rva)
 
-	if length > 0 {
-		end = rva + length
-	} else {
-		end = pe.dataLen
+	if length == 0 {
+		length = pe.dataLen
 	}
+
 	if section == nil {
 		if rva < pe.headerEnd {
-			end = min(end, pe.headerEnd)
+			return rva, min(rva+length, pe.headerEnd), nil
 		}
 		// Before we give up we check whether the file might
 		// contain the data anyway. There are cases of PE files
@@ -440,27 +439,18 @@ func (pe *PEFile) getDataBounds(rva, length uint32) (start, size uint32) {
 		// MD5: 0008892cdfbc3bda5ce047c565e52295
 		// SHA-1: c7116b9ff950f86af256defb95b5d4859d4752a9
 		if rva < pe.dataLen {
-			return rva, end
+			return rva, min(rva+length, pe.dataLen), nil
 		}
-		return ^uint32(0), ^uint32(0)
+		return 0, 0, fmt.Errorf("No valid bounds for rva 0x%x", rva)
 	}
-	pointer := pe.adjustFileAlignment(section.Data.PointerToRawData)
-	vaddr := pe.adjustSectionAlignment(section.Data.VirtualAddress)
 
-	if rva == 0 {
-		offset = pointer
-	} else {
-		offset = (rva - vaddr) + pointer
-	}
-	if length != 0 {
-		end = offset + length
-	} else {
-		end = offset + section.Data.SizeOfRawData
-	}
-	if end > pointer+section.Data.SizeOfRawData {
-		end = section.Data.PointerToRawData + section.Data.SizeOfRawData
-	}
-	return offset, end
+	sectionAlignment := pe.adjustSectionAlignment(section.Data.VirtualAddress)
+	fileAlignment := pe.adjustFileAlignment(section.Data.PointerToRawData)
+	start = rva - sectionAlignment + fileAlignment
+
+	end = min(start+length, section.Data.PointerToRawData+section.Data.SizeOfRawData)
+
+	return
 }
 
 // OC Patch:

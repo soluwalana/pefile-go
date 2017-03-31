@@ -21,16 +21,25 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 	}
 
 	exportDir := newExportDirectory(exportDirOffset)
-	start, _ := pe.getDataBounds(rva, 0)
+	start, _, err := pe.getDataBounds(rva, 0)
 	if err = pe.readOffset(&exportDir.Data, start); err != nil {
 		return err
 	}
 	pe.ExportDirectory = exportDir
 
 	log.Println(exportDir)
-	startAddrOfNames, _ := pe.getDataBounds(exportDir.Data.AddressOfNames, 0)
-	startAddrOfOrdinals, _ := pe.getDataBounds(exportDir.Data.AddressOfNameOrdinals, 0)
-	startAddrOfFuncs, _ := pe.getDataBounds(exportDir.Data.AddressOfFunctions, 0)
+	startAddrOfNames, _, err := pe.getDataBounds(exportDir.Data.AddressOfNames, 0)
+	if err != nil {
+		return err
+	}
+	startAddrOfOrdinals, _, err := pe.getDataBounds(exportDir.Data.AddressOfNameOrdinals, 0)
+	if err != nil {
+		return err
+	}
+	startAddrOfFuncs, _, err := pe.getDataBounds(exportDir.Data.AddressOfFunctions, 0)
+	if err != nil {
+		return err
+	}
 
 	errMsg := "RVA %s in the export directory points to an invalid address: 0x%x"
 	//maxErrors := 10
@@ -39,7 +48,6 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 	if section == nil {
 		log.Printf(errMsg, "AddressOfNames", exportDir.Data.AddressOfNames)
 		return fmt.Errorf(errMsg, "AddressOfNames", exportDir.Data.AddressOfNames)
-
 	}
 
 	safetyBoundary := section.Data.VirtualAddress + section.Data.SizeOfRawData - exportDir.Data.AddressOfNames
