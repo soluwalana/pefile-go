@@ -269,7 +269,7 @@ func (pe *PEFile) parseDataDirectories() error {
 			}
 			err := parser.(func(uint32, uint32) error)(dirEntry.Data.VirtualAddress, dirEntry.Data.Size)
 			if err != nil {
-				return err
+				pe.Errors = append(pe.Errors, err)
 			}
 		}
 	}

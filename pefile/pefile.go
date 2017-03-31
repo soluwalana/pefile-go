@@ -20,7 +20,13 @@ func main() {
 		fmt.Println(err)
 		os.Exit(2)
 	}
+
 	fmt.Println(pefile.Filename)
+
+	for _, e := range pefile.Errors {
+		fmt.Println("Parser warning:", e)
+	}
+
 	fmt.Println(pefile.DosHeader.String())
 	fmt.Println(pefile.NTHeader.String())
 	fmt.Println(pefile.COFFFileHeader.String())
