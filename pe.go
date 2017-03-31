@@ -23,6 +23,7 @@ type PEFile struct {
 	Sections          []SectionHeader
 	ImportDescriptors []ImportDescriptor
 	ExportDirectory   *ExportDirectory
+	Errors            []error
 	// Private Fields
 	data mmap.MMap
 	// dataLen is a convience field that holds len(data) as a uint32

@@ -154,7 +154,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		sym.Ordinal = uint16(exportDir.Data.Base + i)
 
 		exportDir.Exports = append(exportDir.Exports, sym)
-
 	}
+
 	return nil
 }
