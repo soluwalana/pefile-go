@@ -380,7 +380,7 @@ func (pe *PEFile) getOffsetFromRva(rva uint32) (uint32, error) {
 	section := pe.getSectionByRva(rva)
 	if section == nil {
 		if rva < pe.dataLen {
-			log.Printf("No section for rva 0x%x, but less than file length, passing back")
+			log.Printf("No section for rva 0x%x, but less than file length, passing back", rva)
 			return rva, nil
 		}
 		return 0, fmt.Errorf("RVA 0x%x can't be mapped to a file offset. Corrupt header?", rva)
