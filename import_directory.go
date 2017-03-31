@@ -82,14 +82,18 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 	all the symbols imported from that object.
 */
 func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
-	var table []ThunkData
-	ilt, err := pe.getImportTable(importDesc.Data.Characteristics, importDesc)
-	if err != nil {
-		return err
+	var table, ilt, iat []ThunkData
+	if importDesc.Data.Characteristics > 0 {
+		ilt, err = pe.getImportTable(importDesc.Data.Characteristics, importDesc)
+		if err != nil {
+			return err
+		}
 	}
-	iat, err := pe.getImportTable(importDesc.Data.FirstThunk, importDesc)
-	if err != nil {
-		return err
+	if importDesc.Data.FirstThunk > 0 {
+		iat, err = pe.getImportTable(importDesc.Data.FirstThunk, importDesc)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(iat) == 0 && len(ilt) == 0 {
@@ -123,9 +127,11 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 				imp.ImportByOrdinal = false
 				imp.HintNameTableRva = table[idx].Data.AddressOfData & addressMask
 
-				fileOffset := pe.getOffsetFromRva(imp.HintNameTableRva)
-				if err := pe.parseHeader(&imp.Hint, fileOffset); err != nil {
-					return err
+				if imp.HintNameTableRva > 0 {
+					fileOffset := pe.getOffsetFromRva(imp.HintNameTableRva)
+					if err := pe.parseHeader(&imp.Hint, fileOffset); err != nil {
+						return err
+					}
 				}
 
 				imp.Name = pe.getStringAtRva(table[idx].Data.AddressOfData + 2)
@@ -278,7 +284,7 @@ func (pe *PEFile) parseImports64(importDesc *ImportDescriptor) (err error) {
 	return nil
 }
 
-func (pe *PEFile) getImportTable64(rva uint64) []*ThunkData64 {
+func (pe *PEFile) getImportTable64(rva uint64) []ThunkData64 {
 	// todo not implemeted yet
-	return []*ThunkData64{}
+	return []ThunkData64{}
 }
