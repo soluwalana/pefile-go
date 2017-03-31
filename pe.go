@@ -4,14 +4,11 @@ package pefile
   TODO: figure out how to detect endianess instead of forcing LittleEndian
 */
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/edsrzf/mmap-go"
 	"log"
 	"os"
-	"reflect"
 	"sort"
 )
 
@@ -27,7 +24,8 @@ type PEFile struct {
 	ImportDescriptors []ImportDescriptor
 	ExportDirectory   *ExportDirectory
 	// Private Fields
-	data      mmap.MMap
+	data mmap.MMap
+	// dataLen is a convience field that holds len(data) as a uint32
 	dataLen   uint32
 	headerEnd uint32
 }
@@ -238,34 +236,6 @@ func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	}
 
 	return newOffset, nil
-}
-
-// readRVA does a binary.Read() at the given RVA by attempting to translate
-// it to a file offset first
-func (pe *PEFile) readRVA(iface interface{}, rva uint32) error {
-	offset, err := pe.getOffsetFromRva(rva)
-	if err != nil {
-		return err
-	}
-	return pe.readOffset(iface, offset)
-}
-
-// readOffset does a binary.Read() from the file offset given
-func (pe *PEFile) readOffset(iface interface{}, offset uint32) error {
-	size := uint32(binary.Size(iface))
-	if offset+size < offset {
-		return fmt.Errorf("overflow, was -1 passed to parseHeader: %s:%x, offset 0x%x, file length: 0x%x", reflect.TypeOf(iface), size, offset, len(pe.data))
-	}
-	if offset+size > pe.dataLen {
-		return fmt.Errorf("requested header %s:%x would read past end of the file, offset 0x%x, file length: 0x%x", reflect.TypeOf(iface), size, offset, len(pe.data))
-	}
-
-	buf := bytes.NewReader(pe.data[offset : offset+size])
-	err := binary.Read(buf, binary.LittleEndian, iface)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (pe *PEFile) parseDataDirectories() error {
@@ -491,29 +461,6 @@ func (pe *PEFile) getDataBounds(rva, length uint32) (start, size uint32) {
 		end = section.Data.PointerToRawData + section.Data.SizeOfRawData
 	}
 	return offset, end
-}
-
-// Get an ASCII string from within the data at an RVA considering
-// section
-func (pe *PEFile) getStringAtRva(rva uint32) []byte {
-	start, _ := pe.getDataBounds(rva, 0)
-	return pe.getStringFromData(start)
-}
-
-// Get an ASCII string from within the data.
-func (pe *PEFile) getStringFromData(offset uint32) []byte {
-	if offset > pe.dataLen {
-		return []byte{}
-	}
-
-	end := offset
-	for end < pe.dataLen {
-		if pe.data[end] == 0 {
-			break
-		}
-		end++
-	}
-	return pe.data[offset:end]
 }
 
 // OC Patch:

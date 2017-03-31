@@ -28,10 +28,6 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) error {
 
 		importDesc := newImportDescriptor(fileOffset)
 
-		if (importDesc.Size + fileOffset) > pe.dataLen {
-			return errors.New("Not enough space for importDesc")
-		}
-
 		if err = pe.readOffset(&importDesc.Data, fileOffset); err != nil {
 			return err
 		}
@@ -42,8 +38,11 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) error {
 
 		fileOffset += importDesc.Size
 
-		importDesc.Dll = pe.getStringAtRva(importDesc.Data.Name)
-		if !isValidDosFilename(importDesc.Dll) {
+		importDesc.Dll, err = pe.readStringRVA(importDesc.Data.Name)
+		if err != nil {
+			log.Println("Error reading import name", err)
+			importDesc.Dll = invalidImportName
+		} else if !isValidDosFilename(importDesc.Dll) {
 			importDesc.Dll = invalidImportName
 		}
 		log.Printf("Import descriptor name rva 0x%x: %s", importDesc.Data.Name, importDesc.Dll)
@@ -136,9 +135,11 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 					}
 				}
 
-				imp.Name = pe.getStringAtRva(table[idx].Data.AddressOfData + 2)
-
-				if !isValidFuncName(imp.Name) {
+				imp.Name, err = pe.readStringRVA(table[idx].Data.AddressOfData + 2)
+				if err != nil {
+					log.Println("Error reading import name", err)
+					imp.Name = invalidImportName
+				} else if !isValidFuncName(imp.Name) {
 					imp.Name = invalidImportName
 				}
 				imp.NameOffset, err = pe.getOffsetFromRva(table[idx].Data.AddressOfData + 2)

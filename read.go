@@ -37,21 +37,21 @@ func (pe *PEFile) readOffset(iface interface{}, offset uint32) error {
 
 // Get an ASCII string from within the data at an RVA considering
 // section
-func (pe *PEFile) readStringRVA(rva uint32) []byte {
+func (pe *PEFile) readStringRVA(rva uint32) ([]byte, error) {
 	start, end := pe.getDataBounds(rva, 0)
 	return pe.readStringOffset(start, end)
 }
 
 // Get an ASCII string from within the data.
-func (pe *PEFile) readStringOffset(offset uint32, maxLen uint32) []byte {
+func (pe *PEFile) readStringOffset(offset uint32, maxLen uint32) ([]byte, error) {
 	if offset > pe.dataLen {
-		return []byte{}
+		return nil, fmt.Errorf("Attempted to read ASCII string past end of file at offset: 0x%x", offset)
 	}
 
 	for end := offset; end < pe.dataLen && end-offset < maxLen; end++ {
 		if pe.data[end] == 0 {
-			return pe.data[offset:end]
+			return pe.data[offset:end], nil
 		}
 	}
-	return pe.data[offset:]
+	return pe.data[offset:], nil
 }

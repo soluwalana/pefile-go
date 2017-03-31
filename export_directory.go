@@ -57,11 +57,16 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 		if err = pe.readOffset(&symNameAddr, sym.NameOffset); err != nil {
 			return err
 		}
-		sym.Name = pe.getStringAtRva(symNameAddr)
+		sym.Name, err = pe.readStringRVA(symNameAddr)
+		if err != nil {
+			log.Println("Error reading symbol name", err)
+			break
+		}
 		log.Printf("%s\n", sym.Name)
 		if !isValidFuncName(sym.Name) {
 			break
 		}
+
 		sym.NameOffset, err = pe.getOffsetFromRva(symNameAddr)
 		if err != nil {
 			return err
@@ -84,7 +89,10 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 
 		// Forwarder if applicable
 		if sym.Address >= rva && sym.Address < rva+size {
-			sym.Forwarder = pe.getStringAtRva(sym.Address)
+			sym.Forwarder, err = pe.readStringRVA(sym.Address)
+			if err != nil {
+				return err
+			}
 			sym.ForwarderOffset, err = pe.getOffsetFromRva(sym.Address)
 			if err != nil {
 				return err
@@ -125,7 +133,10 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 
 		// Forwarder if applicable
 		if sym.Address >= rva && sym.Address < rva+size {
-			sym.Forwarder = pe.getStringAtRva(sym.Address)
+			sym.Forwarder, err = pe.readStringRVA(sym.Address)
+			if err != nil {
+				return err
+			}
 			sym.ForwarderOffset, err = pe.getOffsetFromRva(sym.Address)
 			if err != nil {
 				return err
