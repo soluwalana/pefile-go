@@ -390,7 +390,7 @@ type ExportDirectory struct {
 	Data       ExportDirectoryD
 	FileOffset uint32
 	Flags      map[string]bool
-	Exports    []*ExportData
+	Exports    []ExportData
 	Size       uint32
 }
 

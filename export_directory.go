@@ -50,8 +50,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 
 	//log.Printf("Safety boundary %x, num names %d\n", safetyBoundary, numNames)
 	for i := uint32(0); i < numNames; i++ {
-		sym := new(ExportData)
-
+		var sym ExportData
 		// Name and name offset
 		var symNameAddr uint32
 		sym.NameOffset = startAddrOfNames + (i * 4)
@@ -113,7 +112,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 			continue
 		}
 
-		sym := new(ExportData)
+		var sym ExportData
 
 		// Address
 		sym.AddressOffset = startAddrOfFuncs + (uint32(sym.Ordinal) * 4)
