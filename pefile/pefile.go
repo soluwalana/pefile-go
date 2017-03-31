@@ -23,7 +23,7 @@ func main() {
 	fmt.Println(pefile.Filename)
 	fmt.Println(pefile.DosHeader.String())
 	fmt.Println(pefile.NTHeader.String())
-	fmt.Println(pefile.COFFFileHeader)
+	fmt.Println(pefile.COFFFileHeader.String())
 	fmt.Println(pefile.OptionalHeader)
 
 	for key, val := range pefile.OptionalHeader.DataDirs {

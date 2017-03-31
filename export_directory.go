@@ -48,7 +48,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 	// A hash set for tracking seen ordinals
 	ordMap := make(map[uint16]bool)
 
-	fmt.Printf("Safety boundary %x, num names %d\n", safetyBoundary, numNames)
+	//log.Printf("Safety boundary %x, num names %d\n", safetyBoundary, numNames)
 	for i := uint32(0); i < numNames; i++ {
 		sym := new(ExportData)
 
@@ -107,7 +107,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 	safetyBoundary = section.Data.VirtualAddress + section.Data.SizeOfRawData - exportDir.Data.AddressOfFunctions
 	numNames = min(safetyBoundary/4, exportDir.Data.NumberOfFunctions)
 
-	fmt.Printf("Safety2 boundary %x, num names %d\n", safetyBoundary, numNames)
+	//log.Printf("Safety2 boundary %x, num names %d\n", safetyBoundary, numNames)
 	for i := uint32(0); i < numNames; i++ {
 		if _, ok := ordMap[uint16(i+exportDir.Data.Base)]; ok {
 			continue

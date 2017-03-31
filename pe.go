@@ -95,8 +95,6 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	offset += pe.COFFFileHeader.Size
 
-	log.Println("Size of OptionalHeader")
-
 	pe.OptionalHeader = newOptionalHeader(offset)
 	if err = pe.readOffset(&pe.OptionalHeader.Data, offset); err != nil {
 		return nil, err
