@@ -17,9 +17,12 @@ its entries.
 The exports will be made available as a list of ImportData
 instances in the ImportDescriptors PE attribute.
 */
-func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
+func (pe *PEFile) parseImportDirectory(rva, size uint32) error {
 
-	fileOffset := pe.getOffsetFromRva(rva)
+	fileOffset, err := pe.getOffsetFromRva(rva)
+	if err != nil {
+		return err
+	}
 
 	for fileOffset < pe.dataLen+size {
 
@@ -29,7 +32,7 @@ func (pe *PEFile) parseImportDirectory(rva, size uint32) (err error) {
 			return errors.New("Not enough space for importDesc")
 		}
 
-		if err = pe.parseHeader(&importDesc.Data, fileOffset); err != nil {
+		if err = pe.readOffset(&importDesc.Data, fileOffset); err != nil {
 			return err
 		}
 
@@ -128,8 +131,7 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 				imp.HintNameTableRva = table[idx].Data.AddressOfData & addressMask
 
 				if imp.HintNameTableRva > 0 {
-					fileOffset := pe.getOffsetFromRva(imp.HintNameTableRva)
-					if err := pe.parseHeader(&imp.Hint, fileOffset); err != nil {
+					if err := pe.readRVA(&imp.Hint, imp.HintNameTableRva); err != nil {
 						return err
 					}
 				}
@@ -139,7 +141,10 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 				if !isValidFuncName(imp.Name) {
 					imp.Name = invalidImportName
 				}
-				imp.NameOffset = pe.getOffsetFromRva(table[idx].Data.AddressOfData + 2)
+				imp.NameOffset, err = pe.getOffsetFromRva(table[idx].Data.AddressOfData + 2)
+				if err != nil {
+					return err
+				}
 			}
 			imp.ThunkOffset = table[idx].FileOffset
 			imp.ThunkRva = pe.getRvaFromOffset(imp.ThunkOffset)
@@ -203,7 +208,8 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]Th
 	}
 	lastAddr := rva + maxLen
 
-	// logic start
+	// logic start			break
+
 	for {
 		if rva >= lastAddr {
 			log.Println("Error parsing the import table. Entries go beyond bounds.")
@@ -222,8 +228,12 @@ func (pe *PEFile) getImportTable(rva uint32, importDesc *ImportDescriptor) ([]Th
 			return nil, errors.New("data addresses too spread out")
 		}
 
-		thunk := newThunkData(pe.getOffsetFromRva(rva))
-		if err := pe.parseHeader(&thunk.Data, thunk.FileOffset); err != nil {
+		thunkOffset, err := pe.getOffsetFromRva(rva)
+		if err != nil {
+			return nil, err
+		}
+		thunk := newThunkData(thunkOffset)
+		if err := pe.readOffset(&thunk.Data, thunk.FileOffset); err != nil {
 			msg := fmt.Sprintf("Error Parsing the import table.\nInvalid data at RVA: 0x%x", rva)
 			log.Println(msg)
 			return nil, errors.New(msg)

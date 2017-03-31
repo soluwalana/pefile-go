@@ -50,7 +50,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	pe.dataLen = uint32(len(pe.data))
 
 	pe.DosHeader = newDosHeader(uint32(0x0))
-	if err = pe.parseHeader(&pe.DosHeader.Data, offset); err != nil {
+	if err = pe.readOffset(&pe.DosHeader.Data, offset); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +69,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	offset = pe.DosHeader.Data.E_lfanew
 
 	pe.NTHeader = newNTHeader(offset)
-	if err = pe.parseHeader(&pe.NTHeader.Data, offset); err != nil {
+	if err = pe.readOffset(&pe.NTHeader.Data, offset); err != nil {
 		return nil, err
 	}
 
@@ -88,7 +88,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	offset += pe.NTHeader.Size
 
 	pe.COFFFileHeader = newCOFFFileHeader(offset)
-	if err = pe.parseHeader(&pe.COFFFileHeader.Data, offset); err != nil {
+	if err = pe.readOffset(&pe.COFFFileHeader.Data, offset); err != nil {
 		return nil, err
 	}
 	SetFlags(pe.COFFFileHeader.Flags, ImageCharacteristics, uint32(pe.COFFFileHeader.Data.Characteristics))
@@ -98,14 +98,14 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	log.Println("Size of OptionalHeader")
 
 	pe.OptionalHeader = newOptionalHeader(offset)
-	if err = pe.parseHeader(&pe.OptionalHeader.Data, offset); err != nil {
+	if err = pe.readOffset(&pe.OptionalHeader.Data, offset); err != nil {
 		return nil, err
 	}
 	SetFlags(pe.OptionalHeader.Flags, DllCharacteristics, uint32(pe.OptionalHeader.Data.DllCharacteristics))
 
 	if pe.OptionalHeader.Data.Magic == OPTIONAL_HEADER_MAGIC_PE_PLUS {
 		pe.OptionalHeader64 = newOptionalHeader64(offset)
-		if err = pe.parseHeader(&pe.OptionalHeader64.Data, offset); err != nil {
+		if err = pe.readOffset(&pe.OptionalHeader64.Data, offset); err != nil {
 			return nil, err
 		}
 
@@ -156,7 +156,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 		}
 
 		dirEntry := newDataDirectory(offset)
-		if err = pe.parseHeader(&dirEntry.Data, offset); err != nil {
+		if err = pe.readOffset(&dirEntry.Data, offset); err != nil {
 			return nil, err
 		}
 		offset += dirEntry.Size
@@ -178,13 +178,9 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 
 	pe.calculateHeaderEnd(offset)
 
-	if pe.getSectionByRva(pe.OptionalHeader.Data.AddressOfEntryPoint) != nil {
-		epOffset := pe.getOffsetFromRva(pe.OptionalHeader.Data.AddressOfEntryPoint)
-		if epOffset > pe.dataLen {
-			log.Printf("Possibly corrupt file. AddressOfEntryPoint lies outside the file. AddressOfEntryPoint: 0x%x", pe.OptionalHeader.Data.AddressOfEntryPoint)
-		}
-	} else {
-		log.Printf("AddressOfEntryPoint lies outside the sections' boundaries, AddressOfEntryPoint: 0x%x", pe.OptionalHeader.Data.AddressOfEntryPoint)
+	_, err = pe.getOffsetFromRva(pe.OptionalHeader.Data.AddressOfEntryPoint)
+	if err != nil {
+		log.Printf("Possibly corrupt file. AddressOfEntryPoint lies outside the file. AddressOfEntryPoint: 0x%x, %s", pe.OptionalHeader.Data.AddressOfEntryPoint, err)
 	}
 
 	err = pe.parseDataDirectories()
@@ -216,7 +212,7 @@ func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	newOffset = offset
 	for i := uint32(0); i < uint32(pe.COFFFileHeader.Data.NumberOfSections); i++ {
 		section := newSectionHeader(newOffset)
-		if err = pe.parseHeader(&section.Data, newOffset); err != nil {
+		if err = pe.readOffset(&section.Data, newOffset); err != nil {
 			return 0, err
 		}
 
@@ -246,7 +242,18 @@ func (pe *PEFile) parseSections(offset uint32) (newOffset uint32, err error) {
 	return newOffset, nil
 }
 
-func (pe *PEFile) parseHeader(iface interface{}, offset uint32) (err error) {
+// readRVA does a binary.Read() at the given RVA by attempting to translate
+// it to a file offset first
+func (pe *PEFile) readRVA(iface interface{}, rva uint32) error {
+	offset, err := pe.getOffsetFromRva(rva)
+	if err != nil {
+		return err
+	}
+	return pe.readOffset(iface, offset)
+}
+
+// readOffset does a binary.Read() from the file offset given
+func (pe *PEFile) readOffset(iface interface{}, offset uint32) error {
 	size := uint32(binary.Size(iface))
 	if offset+size < offset {
 		return fmt.Errorf("overflow, was -1 passed to parseHeader: %s:%x, offset 0x%x, file length: 0x%x", reflect.TypeOf(iface), size, offset, len(pe.data))
@@ -256,7 +263,7 @@ func (pe *PEFile) parseHeader(iface interface{}, offset uint32) (err error) {
 	}
 
 	buf := bytes.NewReader(pe.data[offset : offset+size])
-	err = binary.Read(buf, binary.LittleEndian, iface)
+	err := binary.Read(buf, binary.LittleEndian, iface)
 	if err != nil {
 		return err
 	}
@@ -369,18 +376,18 @@ func (pe *PEFile) getRvaFromOffset(offset uint32) uint32 {
 	return offset - fileAlignment + sectionAlignment
 }
 
-func (pe *PEFile) getOffsetFromRva(rva uint32) uint32 {
+func (pe *PEFile) getOffsetFromRva(rva uint32) (uint32, error) {
 	section := pe.getSectionByRva(rva)
 	if section == nil {
 		if rva < pe.dataLen {
-			return rva
+			log.Printf("No section for rva 0x%x, but less than file length, passing back")
+			return rva, nil
 		}
-		log.Printf("RVA 0x%x can't be mapped to a file offset. Corrupt header?", rva)
-		return ^uint32(0)
+		return 0, fmt.Errorf("RVA 0x%x can't be mapped to a file offset. Corrupt header?", rva)
 	}
 	sectionAlignment := pe.adjustSectionAlignment(section.Data.VirtualAddress)
 	fileAlignment := pe.adjustFileAlignment(section.Data.PointerToRawData)
-	return rva - sectionAlignment + fileAlignment
+	return rva - sectionAlignment + fileAlignment, nil
 }
 
 // According to http://corkami.blogspot.com/2010/01/parce-que-la-planche-aura-brule.html
