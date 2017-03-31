@@ -113,13 +113,13 @@ type OptionalHeader struct {
 	FileOffset uint32
 	Flags      map[string]bool
 	Size       uint32
-	DataDirs   map[string]*DataDirectory
+	DataDirs   map[string]DataDirectory
 }
 
 func newOptionalHeader(fileOffset uint32) (header *OptionalHeader) {
 	header = new(OptionalHeader)
 	header.Flags = make(map[string]bool)
-	header.DataDirs = make(map[string]*DataDirectory)
+	header.DataDirs = make(map[string]DataDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
 	return header
@@ -168,14 +168,14 @@ type OptionalHeader64 struct {
 	Data       OptionalHeader64D
 	FileOffset uint32
 	Flags      map[string]bool
-	DataDirs   map[string]*DataDirectory
+	DataDirs   map[string]DataDirectory
 	Size       uint32
 }
 
 func newOptionalHeader64(fileOffset uint32) (header *OptionalHeader64) {
 	header = new(OptionalHeader64)
 	header.Flags = make(map[string]bool)
-	header.DataDirs = make(map[string]*DataDirectory)
+	header.DataDirs = make(map[string]DataDirectory)
 	header.Size = uint32(binary.Size(header.Data))
 	header.FileOffset = fileOffset
 	return header
@@ -233,11 +233,11 @@ type DataDirectoryD struct {
 	Size           uint32
 }
 
-func newDataDirectory(fileOffset uint32) (header *DataDirectory) {
-	header = new(DataDirectory)
-	header.Size = uint32(binary.Size(header.Data))
-	header.FileOffset = fileOffset
-	return header
+func newDataDirectory(fileOffset uint32) (header DataDirectory) {
+	return DataDirectory{
+		Size:       uint32(binary.Size(DataDirectoryD{})),
+		FileOffset: fileOffset,
+	}
 }
 
 func (dd *DataDirectory) String() string {

@@ -32,7 +32,7 @@ func (pe *PEFile) parseExportDirectory(rva, size uint32) (err error) {
 	startAddrOfOrdinals, _ := pe.getDataBounds(exportDir.Data.AddressOfNameOrdinals, 0)
 	startAddrOfFuncs, _ := pe.getDataBounds(exportDir.Data.AddressOfFunctions, 0)
 
-	errMsg := "RVA %s in the export directory points to an invalid address: %x"
+	errMsg := "RVA %s in the export directory points to an invalid address: 0x%x"
 	//maxErrors := 10
 
 	section := pe.getSectionByRva(exportDir.Data.AddressOfNames)

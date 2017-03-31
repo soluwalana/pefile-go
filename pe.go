@@ -126,7 +126,7 @@ func NewPEFile(filename string) (pe *PEFile, err error) {
 	msg := "Suspicious NumberOfRvaAndSizes in the Optional Header."
 	msg += "Normal values are never larger than 0x10, the value is: 0x%x\n"
 
-	var dataDir map[string]*DataDirectory
+	var dataDir map[string]DataDirectory
 
 	sectionOffset := offset + uint32(pe.COFFFileHeader.Data.SizeOfOptionalHeader)
 
@@ -269,7 +269,7 @@ func (pe *PEFile) readOffset(iface interface{}, offset uint32) error {
 }
 
 func (pe *PEFile) parseDataDirectories() error {
-	var dataDirs map[string]*DataDirectory
+	var dataDirs map[string]DataDirectory
 
 	funcMap := map[string]interface{}{
 		"IMAGE_DIRECTORY_ENTRY_IMPORT": pe.parseImportDirectory,
