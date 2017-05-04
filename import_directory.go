@@ -153,7 +153,7 @@ func (pe *PEFile) parseImports(importDesc *ImportDescriptor) (err error) {
 
 		imp.Address = importDesc.Data.FirstThunk + pe.OptionalHeader.Data.ImageBase + (uint32(idx) * impOffset)
 
-		if len(iat) > 0 && len(ilt) > 0 && ilt[idx].Data.AddressOfData != iat[idx].Data.AddressOfData {
+		if idx < len(iat) && idx < len(ilt) && ilt[idx].Data.AddressOfData != iat[idx].Data.AddressOfData {
 			imp.Bound = iat[idx].Data.AddressOfData
 			imp.StructIat = iat[idx]
 		}
