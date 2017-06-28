@@ -420,16 +420,12 @@ func (pe *PEFile) adjustSectionAlignment(pointer uint32) uint32 {
 // getDataBounds returns a start file offset and a max length:
 // * if rva is in a valid section, from the file offset of the rva to end of
 //   of the section, or less if length is non-zero
-func (pe *PEFile) getDataBounds(rva, length uint32) (start, end uint32, err error) {
+func (pe *PEFile) getDataBounds(rva uint32) (start, length uint32, err error) {
 	section := pe.getSectionByRva(rva)
-
-	if length == 0 {
-		length = pe.dataLen
-	}
 
 	if section == nil {
 		if rva < pe.headerEnd {
-			return rva, min(rva+length, pe.headerEnd), nil
+			return rva, pe.headerEnd, nil
 		}
 		// Before we give up we check whether the file might
 		// contain the data anyway. There are cases of PE files
@@ -440,7 +436,7 @@ func (pe *PEFile) getDataBounds(rva, length uint32) (start, end uint32, err erro
 		// MD5: 0008892cdfbc3bda5ce047c565e52295
 		// SHA-1: c7116b9ff950f86af256defb95b5d4859d4752a9
 		if rva < pe.dataLen {
-			return rva, min(rva+length, pe.dataLen), nil
+			return rva, pe.dataLen, nil
 		}
 		return 0, 0, fmt.Errorf("No valid bounds for rva 0x%x", rva)
 	}
@@ -449,7 +445,7 @@ func (pe *PEFile) getDataBounds(rva, length uint32) (start, end uint32, err erro
 	fileAlignment := pe.adjustFileAlignment(section.Data.PointerToRawData)
 	start = rva - sectionAlignment + fileAlignment
 
-	end = min(start+length, section.Data.PointerToRawData+section.Data.SizeOfRawData)
+	length = section.Data.VirtualAddress + section.Data.SizeOfRawData - rva
 
 	return
 }

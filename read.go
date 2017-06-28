@@ -38,11 +38,11 @@ func (pe *PEFile) readOffset(iface interface{}, offset uint32) error {
 // Get an ASCII string from within the data at an RVA considering
 // section
 func (pe *PEFile) readStringRVA(rva uint32) ([]byte, error) {
-	start, end, err := pe.getDataBounds(rva, 0)
+	start, length, err := pe.getDataBounds(rva)
 	if err != nil {
 		return nil, err
 	}
-	return pe.readStringOffset(start, end-start)
+	return pe.readStringOffset(start, length)
 }
 
 // Get an ASCII string from within the data.
