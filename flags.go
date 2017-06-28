@@ -1,6 +1,8 @@
 package pefile
 
 // ImageCharacteristics is a lookup from the string name to flag value
+//
+// Instantiated as Pe.COFFFileHeader.Flags
 var ImageCharacteristics = map[string]uint32{
 	"IMAGE_FILE_RELOCS_STRIPPED":         0x0001,
 	"IMAGE_FILE_EXECUTABLE_IMAGE":        0x0002,
